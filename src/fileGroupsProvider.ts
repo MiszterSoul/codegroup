@@ -86,10 +86,19 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         'text/uri-list'
     ];
 
+    private onFilesAddedCallback?: (uris: vscode.Uri[]) => void;
+
     constructor(
         private storageService: StorageService,
         private provider: FileGroupsProvider
     ) {}
+
+    /**
+     * Set callback to be called when files are added (for decoration refresh)
+     */
+    setOnFilesAddedCallback(callback: (uris: vscode.Uri[]) => void): void {
+        this.onFilesAddedCallback = callback;
+    }
 
     /**
      * Handle drag start - export data for dragging
@@ -281,6 +290,10 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             const addedCount = await this.storageService.addFilesToGroup(targetGroup.id, files);
             if (addedCount > 0) {
                 this.provider.refresh();
+                // Trigger decoration refresh for added files
+                if (this.onFilesAddedCallback) {
+                    this.onFilesAddedCallback(uris);
+                }
                 vscode.window.showInformationMessage(
                     `Added ${addedCount} file(s) to "${targetGroup.name}"`
                 );
