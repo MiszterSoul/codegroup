@@ -26,7 +26,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Create tree view with drag and drop support
     const dragDropController = new FileGroupsDragDropController(storageService, fileGroupsProvider);
-    
+
     // Set callback to refresh decorations when files are added via drag & drop
     dragDropController.setOnFilesAddedCallback((uris) => {
         fileDecorationProvider.refresh(uris);
