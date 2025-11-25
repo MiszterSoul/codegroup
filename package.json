@@ -3,7 +3,7 @@
   "displayName": "File Groups",
   "description": "Organize files from different folders into custom groups with colors, icons, and subgroups. Perfect for managing related files across large projects.",
   "version": "1.0.0",
-  "publisher": "MiszterSoul",
+  "publisher": "PeterDev",
   "license": "MIT",
   "icon": "images/icon.png",
   "repository": {
