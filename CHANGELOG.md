@@ -5,6 +5,28 @@ All notable changes to the "CodeGroup - File Organizer" extension will be docume
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-11-25
+
+### Added
+- **Folder support** - Folders can now be added to groups and display with proper folder icons
+- **120+ icons** - Massively expanded icon selection for groups (was 30, now 120+)
+  - New categories: Development, Communication, Media, People, Navigation, Status, and more
+- **Manual reordering** - Drag and drop files within a group to reorder them
+
+### Changed
+- **Item counting** - Groups now show "X items" instead of "X files" to account for folders
+- **Simplified UI** - Streamlined the tree view title for a cleaner look
+- **Quieter notifications** - Removed most info messages for a less intrusive experience
+
+### Fixed
+- Folders now show folder icon instead of blank file icon when added to groups
+- Tree view state (expanded/collapsed) is now preserved when editing groups
+
+## [1.0.1] - 2025-11-25
+
+### Fixed
+- Minor bug fixes and improvements
+
 ## [1.0.0] - 2025-11-25
 
 ### Added

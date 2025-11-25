@@ -67,15 +67,34 @@ export class StorageService {
             const config: FileGroupsConfig = JSON.parse(content.toString());
 
             if (config.version && config.groups) {
-                // Convert relative paths to absolute paths
+                // Convert relative paths to absolute paths and detect directories
                 const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
                 if (workspaceRoot) {
-                    config.groups.forEach(group => {
-                        group.files = group.files.map(file => ({
-                            ...file,
-                            path: this.toAbsolutePath(file.path, workspaceRoot)
-                        }));
-                    });
+                    for (const group of config.groups) {
+                        const updatedFiles = [];
+                        for (const file of group.files) {
+                            const absolutePath = this.toAbsolutePath(file.path, workspaceRoot);
+                            let isDirectory = file.isDirectory;
+
+                            // If isDirectory is not set, check the filesystem
+                            if (isDirectory === undefined) {
+                                try {
+                                    const uri = vscode.Uri.file(absolutePath);
+                                    const stat = await vscode.workspace.fs.stat(uri);
+                                    isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
+                                } catch {
+                                    isDirectory = false;
+                                }
+                            }
+
+                            updatedFiles.push({
+                                ...file,
+                                path: absolutePath,
+                                isDirectory
+                            });
+                        }
+                        group.files = updatedFiles;
+                    }
                 }
 
                 await this.context.workspaceState.update(STORAGE_KEY, config.groups);
@@ -286,6 +305,36 @@ export class StorageService {
             group.files = group.files.filter(f => f.path !== filePath);
             await this.saveGroups(groups);
         }
+    }
+
+    /**
+     * Reorder files within a group
+     */
+    async reorderFilesInGroup(groupId: string, draggedFilePath: string, targetFilePath: string | null): Promise<void> {
+        const groups = this.getGroups();
+        const group = groups.find(g => g.id === groupId);
+        if (!group) return;
+
+        const draggedIndex = group.files.findIndex(f => f.path === draggedFilePath);
+        if (draggedIndex === -1) return;
+
+        const [draggedFile] = group.files.splice(draggedIndex, 1);
+
+        if (targetFilePath === null) {
+            // Drop at the end
+            group.files.push(draggedFile);
+        } else {
+            const targetIndex = group.files.findIndex(f => f.path === targetFilePath);
+            if (targetIndex !== -1) {
+                // Insert before target
+                group.files.splice(targetIndex, 0, draggedFile);
+            } else {
+                // Target not found, add at end
+                group.files.push(draggedFile);
+            }
+        }
+
+        await this.saveGroups(groups);
     }
 
     /**

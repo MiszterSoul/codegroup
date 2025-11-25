@@ -131,7 +131,6 @@ function registerCommands(context: vscode.ExtensionContext) {
                 };
                 await storageService.createGroup(newGroup);
                 fileGroupsProvider.refresh();
-                vscode.window.showInformationMessage(`Created group "${name}"`);
             }
         })
     );
@@ -158,7 +157,6 @@ function registerCommands(context: vscode.ExtensionContext) {
                     };
                     await storageService.createGroup(newGroup);
                     fileGroupsProvider.refresh();
-                    vscode.window.showInformationMessage(`Created subgroup "${name}"`);
                 }
             }
         })
@@ -235,7 +233,6 @@ function registerCommands(context: vscode.ExtensionContext) {
             if ((item?.itemType === 'group' || item?.itemType === 'subgroup') && item.group.parentId) {
                 await storageService.updateGroup(item.group.id, { parentId: undefined });
                 fileGroupsProvider.refresh();
-                vscode.window.showInformationMessage(`Moved "${item.group.name}" to root level`);
             }
         })
     );
@@ -375,34 +372,37 @@ function registerCommands(context: vscode.ExtensionContext) {
 
             const groupItems = groups.map(g => ({
                 label: `$(${g.icon || 'folder'}) ${g.name}`,
-                description: `${g.files.length} files`,
+                description: `${g.files.length} ${g.files.length === 1 ? 'item' : 'items'}`,
                 groupId: g.id
             }));
 
             const selected = await vscode.window.showQuickPick(groupItems, {
-                placeHolder: `Select group to add ${filesToAdd.length} file(s)`
+                placeHolder: `Select group to add ${filesToAdd.length} item(s)`
             });
 
             if (selected) {
-                const files: GroupFile[] = filesToAdd.map(fileUri => ({
-                    path: fileUri.fsPath,
-                    name: fileUri.fsPath.split(/[/\\]/).pop() || 'unknown'
-                }));
+                const files: GroupFile[] = [];
+
+                for (const fileUri of filesToAdd) {
+                    let isDirectory = false;
+                    try {
+                        const stat = await vscode.workspace.fs.stat(fileUri);
+                        isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
+                    } catch {
+                        // If stat fails, assume it's a file
+                    }
+
+                    files.push({
+                        path: fileUri.fsPath,
+                        name: fileUri.fsPath.split(/[/\\]/).pop() || 'unknown',
+                        isDirectory
+                    });
+                }
 
                 const addedCount = await storageService.addFilesToGroup(selected.groupId, files);
                 fileGroupsProvider.refresh();
                 // Refresh decorations for added files
                 fileDecorationProvider.refresh(filesToAdd);
-
-                if (addedCount > 0) {
-                    vscode.window.showInformationMessage(
-                        `Added ${addedCount} file(s) to group`
-                    );
-                } else {
-                    vscode.window.showInformationMessage(
-                        'All files are already in the group'
-                    );
-                }
             }
         })
     );
@@ -448,10 +448,6 @@ function registerCommands(context: vscode.ExtensionContext) {
             if (urisToRefresh.length > 0) {
                 fileDecorationProvider.refresh(urisToRefresh);
             }
-
-            if (itemsToRemove.length > 1) {
-                vscode.window.showInformationMessage(`Removed ${itemsToRemove.length} files from groups`);
-            }
         })
     );
 
@@ -471,14 +467,9 @@ function registerCommands(context: vscode.ExtensionContext) {
                                 preserveFocus: true
                             });
                         } catch (error) {
-                            vscode.window.showWarningMessage(`Could not open: ${file.name}`);
+                            // Could not open file, skip silently
                         }
                     }
-                    vscode.window.showInformationMessage(
-                        `Opened ${allFiles.length} file(s) from "${item.group.name}"`
-                    );
-                } else {
-                    vscode.window.showInformationMessage('Group is empty');
                 }
             }
         })
@@ -493,7 +484,6 @@ function registerCommands(context: vscode.ExtensionContext) {
 
                 if (allFiles.length > 0) {
                     const groupFilePaths = new Set(allFiles.map(f => f.path));
-                    let closedCount = 0;
 
                     // Get all tab groups and tabs
                     for (const tabGroup of vscode.window.tabGroups.all) {
@@ -505,23 +495,12 @@ function registerCommands(context: vscode.ExtensionContext) {
                                 if (tabUri.scheme === 'file' && groupFilePaths.has(tabUri.fsPath)) {
                                     try {
                                         await vscode.window.tabGroups.close(tab);
-                                        closedCount++;
                                     } catch {
                                         // Tab might already be closed
                                     }
                                 }
                             }
                         }
-                    }
-
-                    if (closedCount > 0) {
-                        vscode.window.showInformationMessage(
-                            `Closed ${closedCount} file(s) from "${item.group.name}"`
-                        );
-                    } else {
-                        vscode.window.showInformationMessage(
-                            `No open files from "${item.group.name}" to close`
-                        );
                     }
                 }
             }
@@ -558,11 +537,6 @@ function registerCommands(context: vscode.ExtensionContext) {
                 await storageService.saveGroups(groups);
                 fileGroupsProvider.refresh();
                 fileDecorationProvider.refresh();
-                vscode.window.showInformationMessage(
-                    `Removed ${removedCount} missing file(s) from groups`
-                );
-            } else {
-                vscode.window.showInformationMessage('All files in groups exist');
             }
         })
     );
