@@ -1,6 +1,6 @@
 {
-  "name": "file-groups",
-  "displayName": "File Groups",
+  "name": "codegroup-file-organizer",
+  "displayName": "CodeGroup - File Organizer",
   "description": "Organize files from different folders into custom groups with colors, icons, and subgroups. Perfect for managing related files across large projects.",
   "version": "1.0.0",
   "publisher": "PeterDev",

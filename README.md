@@ -1,6 +1,6 @@
-# File Groups
+# CodeGroup - File Organizer
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/MiszterSoul.file-groups?style=flat-square&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=MiszterSoul.file-groups)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/PeterDev.codegroup-file-organizer?style=flat-square&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 **Organize files from different folders into named groups for quick access.** Perfect for large projects where you need to work with related files scattered across multiple directories.
