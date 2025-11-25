@@ -36,10 +36,10 @@ export class FileGroupDecorationProvider implements vscode.FileDecorationProvide
             if (fileInGroup && group.color) {
                 // Get the first letter of the group name as badge
                 const badge = group.name.charAt(0).toUpperCase();
-                
+
                 // For hex colors, map to closest theme color
-                const themeColorId = isHexColor(group.color) 
-                    ? getThemeColorForHex(group.color) 
+                const themeColorId = isHexColor(group.color)
+                    ? getThemeColorForHex(group.color)
                     : group.color;
 
                 return new vscode.FileDecoration(

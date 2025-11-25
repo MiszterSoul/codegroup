@@ -246,7 +246,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
                 if (selected) {
                     let colorValue = selected.colorId;
-                    
+
                     // Handle custom hex color
                     if (selected.colorId === 'custom') {
                         const hexInput = await vscode.window.showInputBox({
@@ -263,7 +263,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                                 return null;
                             }
                         });
-                        
+
                         if (!hexInput) {
                             return; // User cancelled
                         }

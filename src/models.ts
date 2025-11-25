@@ -106,13 +106,13 @@ export function getThemeColorForHex(hexColor: string): string {
     if (!isHexColor(hexColor)) {
         return hexColor;
     }
-    
+
     // Map common hex ranges to theme colors
     const hex = hexColor.toLowerCase();
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
-    
+
     // Simple hue-based mapping
     if (r > 200 && g < 100 && b < 100) return 'charts.red';
     if (r > 200 && g > 100 && g < 200 && b < 100) return 'charts.orange';
@@ -122,7 +122,7 @@ export function getThemeColorForHex(hexColor: string): string {
     if (r > 150 && g < 100 && b > 150) return 'charts.purple';
     if (r < 150 && g > 200 && b > 200) return 'terminal.ansiCyan';
     if (r > 200 && g < 150 && b > 200) return 'terminal.ansiMagenta';
-    
+
     return 'charts.blue'; // Default fallback
 }
 
@@ -170,8 +170,8 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             // Set icon with optional color
             if (group.color) {
                 // For hex colors, map to closest theme color for icon display
-                const themeColorId = isHexColor(group.color) 
-                    ? getThemeColorForHex(group.color) 
+                const themeColorId = isHexColor(group.color)
+                    ? getThemeColorForHex(group.color)
                     : group.color;
                 this.iconPath = new vscode.ThemeIcon(
                     group.icon || 'folder',

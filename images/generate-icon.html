@@ -12,7 +12,7 @@
 <body>
     <h1>File Groups Extension Icon Generator</h1>
     <p>Click the button to download the icon as PNG (128x128)</p>
-    
+
     <div class="preview">
         <div>
             <h3>SVG Preview:</h3>
@@ -23,9 +23,9 @@
             <canvas id="canvas" width="128" height="128"></canvas>
         </div>
     </div>
-    
+
     <button onclick="downloadPNG()">Download icon.png</button>
-    
+
     <script>
         const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <defs>
@@ -34,18 +34,18 @@
       <stop offset="100%" style="stop-color:#7E57C2"/>
     </linearGradient>
   </defs>
-  
+
   <!-- Background rounded square -->
   <rect x="0" y="0" width="128" height="128" rx="20" fill="url(#bgGrad)"/>
-  
+
   <!-- Main folder shape -->
-  <path d="M20,40 L20,95 Q20,100 25,100 L103,100 Q108,100 108,95 L108,45 Q108,40 103,40 L58,40 L52,32 Q50,28 45,28 L25,28 Q20,28 20,33 Z" 
+  <path d="M20,40 L20,95 Q20,100 25,100 L103,100 Q108,100 108,95 L108,45 Q108,40 103,40 L58,40 L52,32 Q50,28 45,28 L25,28 Q20,28 20,33 Z"
         fill="#ffffff" fill-opacity="0.95"/>
-  
+
   <!-- Folder tab highlight -->
-  <path d="M20,33 Q20,28 25,28 L45,28 Q50,28 52,32 L58,40 L25,40 Q20,40 20,45 Z" 
+  <path d="M20,33 Q20,28 25,28 L45,28 Q50,28 52,32 L58,40 L25,40 Q20,40 20,45 Z"
         fill="#ffffff"/>
-  
+
   <!-- Three grouped files -->
   <g transform="translate(30, 52)">
     <!-- File 1 -->
@@ -53,41 +53,41 @@
     <rect x="4" y="12" width="12" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
     <rect x="4" y="17" width="8" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
     <rect x="4" y="22" width="10" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
-    
+
     <!-- File 2 (center, slightly elevated) -->
     <rect x="24" y="0" width="20" height="28" rx="3" fill="#7E57C2"/>
     <rect x="28" y="6" width="12" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
     <rect x="28" y="11" width="8" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
     <rect x="28" y="16" width="10" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
-    
+
     <!-- File 3 -->
     <rect x="48" y="6" width="20" height="28" rx="3" fill="#5C6BC0"/>
     <rect x="52" y="12" width="12" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
     <rect x="52" y="17" width="8" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
     <rect x="52" y="22" width="10" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
   </g>
-  
+
   <!-- Grouping bracket at bottom -->
-  <path d="M40,90 L40,94 Q40,96 42,96 L86,96 Q88,96 88,94 L88,90" 
+  <path d="M40,90 L40,94 Q40,96 42,96 L86,96 Q88,96 88,94 L88,90"
         stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.7"/>
   <circle cx="64" cy="96" r="3" fill="#ffffff" opacity="0.7"/>
 </svg>`;
-        
+
         // Create blob URL for SVG preview
         const blob = new Blob([svgContent], {type: 'image/svg+xml'});
         const url = URL.createObjectURL(blob);
         document.getElementById('svgPreview').src = url;
-        
+
         // Draw to canvas
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
-        
+
         img.onload = function() {
             ctx.drawImage(img, 0, 0, 128, 128);
         };
         img.src = url;
-        
+
         function downloadPNG() {
             const link = document.createElement('a');
             link.download = 'icon.png';
