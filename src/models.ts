@@ -11,7 +11,7 @@ export interface GroupFile {
 }
 
 /**
- * Represents a file group
+ * Represents a file group (can have subgroups)
  */
 export interface FileGroup {
     /** Unique identifier for the group */
@@ -26,6 +26,16 @@ export interface FileGroup {
     files: GroupFile[];
     /** Order index for sorting */
     order: number;
+    /** Parent group ID (null/undefined for root groups) */
+    parentId?: string;
+}
+
+/**
+ * File format for .vscode/file-groups.json
+ */
+export interface FileGroupsConfig {
+    version: number;
+    groups: FileGroup[];
 }
 
 /**
@@ -78,21 +88,58 @@ export const GROUP_COLORS: { id: string; label: string }[] = [
     { id: 'terminal.ansiCyan', label: '🩵 Cyan' },
     { id: 'terminal.ansiMagenta', label: '🩷 Magenta' },
     { id: 'terminal.ansiWhite', label: '⚪ White' },
+    { id: 'custom', label: '🎨 Custom Hex Color...' },
 ];
+
+/**
+ * Check if a color value is a hex color (starts with #)
+ */
+export function isHexColor(color: string): boolean {
+    return color.startsWith('#');
+}
+
+/**
+ * Map hex colors to the closest theme color for ThemeIcon compatibility
+ * Returns the original ThemeColor id if not a hex color
+ */
+export function getThemeColorForHex(hexColor: string): string {
+    if (!isHexColor(hexColor)) {
+        return hexColor;
+    }
+    
+    // Map common hex ranges to theme colors
+    const hex = hexColor.toLowerCase();
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    
+    // Simple hue-based mapping
+    if (r > 200 && g < 100 && b < 100) return 'charts.red';
+    if (r > 200 && g > 100 && g < 200 && b < 100) return 'charts.orange';
+    if (r > 200 && g > 200 && b < 100) return 'charts.yellow';
+    if (r < 100 && g > 150 && b < 100) return 'charts.green';
+    if (r < 100 && g < 150 && b > 200) return 'charts.blue';
+    if (r > 150 && g < 100 && b > 150) return 'charts.purple';
+    if (r < 150 && g > 200 && b > 200) return 'terminal.ansiCyan';
+    if (r > 200 && g < 150 && b > 200) return 'terminal.ansiMagenta';
+    
+    return 'charts.blue'; // Default fallback
+}
 
 /**
  * Tree item types for context value
  */
-export type TreeItemType = 'group' | 'file';
+export type TreeItemType = 'group' | 'subgroup' | 'file';
 
 /**
- * Tree item representing either a group or a file
+ * Tree item representing either a group, subgroup, or a file
  */
 export class FileGroupTreeItem extends vscode.TreeItem {
     constructor(
         public readonly itemType: TreeItemType,
         public readonly group: FileGroup,
-        public readonly file?: GroupFile
+        public readonly file?: GroupFile,
+        public readonly hasChildren: boolean = false
     ) {
         super(
             file ? file.name : group.name,
@@ -101,6 +148,8 @@ export class FileGroupTreeItem extends vscode.TreeItem {
                 : vscode.TreeItemCollapsibleState.Expanded
         );
 
+        // Set context value for menus
+        // subgroups get 'subgroup' so we can show "Move to Root" option
         this.contextValue = itemType;
 
         if (file) {
@@ -120,9 +169,13 @@ export class FileGroupTreeItem extends vscode.TreeItem {
 
             // Set icon with optional color
             if (group.color) {
+                // For hex colors, map to closest theme color for icon display
+                const themeColorId = isHexColor(group.color) 
+                    ? getThemeColorForHex(group.color) 
+                    : group.color;
                 this.iconPath = new vscode.ThemeIcon(
                     group.icon || 'folder',
-                    new vscode.ThemeColor(group.color)
+                    new vscode.ThemeColor(themeColorId)
                 );
             } else {
                 this.iconPath = new vscode.ThemeIcon(group.icon || 'folder');

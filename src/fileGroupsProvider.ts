@@ -3,13 +3,16 @@ import { FileGroup, FileGroupTreeItem, GroupFile } from './models';
 import { StorageService } from './storageService';
 
 /**
- * Tree data provider for file groups
+ * Tree data provider for file groups with hierarchical support
  */
 export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTreeItem> {
     private _onDidChangeTreeData = new vscode.EventEmitter<FileGroupTreeItem | undefined | null | void>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    constructor(private storageService: StorageService) {}
+    constructor(private storageService: StorageService) {
+        // Listen for storage changes (e.g., file changes)
+        storageService.onDidChange(() => this.refresh());
+    }
 
     /**
      * Refresh the tree view
@@ -24,16 +27,31 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
 
     getChildren(element?: FileGroupTreeItem): FileGroupTreeItem[] {
         if (!element) {
-            // Root level - return all groups
-            const groups = this.storageService.getGroups();
+            // Root level - return root groups (groups without parentId)
+            const groups = this.storageService.getRootGroups();
             return groups
                 .sort((a, b) => a.order - b.order)
-                .map(group => new FileGroupTreeItem('group', group));
-        } else if (element.itemType === 'group') {
-            // Group level - return files in the group
-            return element.group.files.map(
-                file => new FileGroupTreeItem('file', element.group, file)
-            );
+                .map(group => {
+                    const hasSubgroups = this.storageService.getSubgroups(group.id).length > 0;
+                    return new FileGroupTreeItem('group', group, undefined, hasSubgroups);
+                });
+        } else if (element.itemType === 'group' || element.itemType === 'subgroup') {
+            // Group level - return subgroups first, then files
+            const items: FileGroupTreeItem[] = [];
+
+            // Add subgroups
+            const subgroups = this.storageService.getSubgroups(element.group.id);
+            subgroups.sort((a, b) => a.order - b.order).forEach(subgroup => {
+                const hasChildren = this.storageService.getSubgroups(subgroup.id).length > 0;
+                items.push(new FileGroupTreeItem('subgroup', subgroup, undefined, hasChildren));
+            });
+
+            // Add files
+            element.group.files.forEach(file => {
+                items.push(new FileGroupTreeItem('file', element.group, file));
+            });
+
+            return items;
         }
         return [];
     }
@@ -41,6 +59,12 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
     getParent(element: FileGroupTreeItem): FileGroupTreeItem | undefined {
         if (element.itemType === 'file') {
             return new FileGroupTreeItem('group', element.group);
+        }
+        if ((element.itemType === 'group' || element.itemType === 'subgroup') && element.group.parentId) {
+            const parent = this.storageService.getGroup(element.group.parentId);
+            if (parent) {
+                return new FileGroupTreeItem(parent.parentId ? 'subgroup' : 'group', parent);
+            }
         }
         return undefined;
     }
@@ -57,7 +81,10 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
     ];
 
     // We can drag items from this tree
-    readonly dragMimeTypes = ['text/uri-list'];
+    readonly dragMimeTypes = [
+        'application/vnd.code.tree.filegroupsview',
+        'text/uri-list'
+    ];
 
     constructor(
         private storageService: StorageService,
@@ -65,14 +92,14 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
     ) {}
 
     /**
-     * Handle drag start - export file URIs
+     * Handle drag start - export data for dragging
      */
     handleDrag(
         source: readonly FileGroupTreeItem[],
         dataTransfer: vscode.DataTransfer,
         _token: vscode.CancellationToken
     ): void {
-        // Export file URIs for files being dragged
+        // Export file URIs for files being dragged (for external drops)
         const files = source.filter(item => item.itemType === 'file' && item.file);
         if (files.length > 0) {
             const uris = files
@@ -81,7 +108,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             dataTransfer.set('text/uri-list', new vscode.DataTransferItem(uris));
         }
 
-        // Set internal drag data for reordering
+        // Set internal drag data for all operations (groups, subgroups, files)
         dataTransfer.set(
             'application/vnd.code.tree.filegroupsview',
             new vscode.DataTransferItem(source)
@@ -89,103 +116,178 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
     }
 
     /**
-     * Handle drop - add files to groups or reorder
+     * Handle drop - add files to groups, move groups, or reorder
      */
     async handleDrop(
         target: FileGroupTreeItem | undefined,
         dataTransfer: vscode.DataTransfer,
         _token: vscode.CancellationToken
     ): Promise<void> {
-        // Determine target group
+        // Determine target group (works for both group and subgroup)
         let targetGroup: FileGroup | undefined;
 
         if (target) {
-            if (target.itemType === 'group') {
+            if (target.itemType === 'group' || target.itemType === 'subgroup') {
                 targetGroup = target.group;
             } else if (target.itemType === 'file') {
                 targetGroup = target.group;
             }
         }
 
-        // Handle files dropped from explorer or tabs (text/uri-list)
-        const uriListItem = dataTransfer.get('text/uri-list');
-        if (uriListItem && targetGroup) {
-            const uriListValue = await uriListItem.asString();
-            const uris = uriListValue
-                .split(/[\r\n]+/)
-                .filter(line => line.trim().length > 0)
-                .map(line => {
-                    try {
-                        return vscode.Uri.parse(line.trim());
-                    } catch {
-                        return null;
-                    }
-                })
-                .filter((uri): uri is vscode.Uri => uri !== null && uri.scheme === 'file');
-
-            if (uris.length > 0) {
-                const files: GroupFile[] = uris.map(uri => ({
-                    path: uri.fsPath,
-                    name: uri.fsPath.split(/[/\\]/).pop() || 'unknown'
-                }));
-
-                const addedCount = await this.storageService.addFilesToGroup(targetGroup.id, files);
-                if (addedCount > 0) {
-                    this.provider.refresh();
-                    vscode.window.showInformationMessage(
-                        `Added ${addedCount} file(s) to "${targetGroup.name}"`
-                    );
-                } else {
-                    vscode.window.showInformationMessage(
-                        'All files are already in the group'
-                    );
-                }
-            }
-            return;
-        }
-
-        // Handle internal drag (reordering groups)
+        // Handle internal drag first (groups, subgroups, files within the tree)
         const internalData = dataTransfer.get('application/vnd.code.tree.filegroupsview');
         if (internalData) {
             const items = internalData.value as FileGroupTreeItem[];
 
-            // Check if we're reordering groups
-            const draggedGroups = items.filter(item => item.itemType === 'group');
-            if (draggedGroups.length > 0 && target?.itemType === 'group') {
-                // Reorder groups
-                const groups = this.storageService.getGroups().sort((a, b) => a.order - b.order);
-                const draggedGroupIds = new Set(draggedGroups.map(g => g.group.id));
-                const targetIndex = groups.findIndex(g => g.id === target.group.id);
-
-                if (targetIndex !== -1) {
-                    // Remove dragged groups
-                    const remaining = groups.filter(g => !draggedGroupIds.has(g.id));
-                    const dragged = groups.filter(g => draggedGroupIds.has(g.id));
-
-                    // Insert at new position
-                    const newTargetIndex = remaining.findIndex(g => g.id === target.group.id);
-                    remaining.splice(newTargetIndex, 0, ...dragged);
-
-                    // Update order
-                    const newOrder = remaining.map(g => g.id);
-                    await this.storageService.reorderGroups(newOrder);
-                    this.provider.refresh();
-                }
+            // Check if we're dragging groups/subgroups
+            const draggedGroups = items.filter(item => item.itemType === 'group' || item.itemType === 'subgroup');
+            if (draggedGroups.length > 0) {
+                // If dropped on empty space (no target), move to root level
+                // If dropped on a group/subgroup, make it a child
+                await this.handleGroupDrop(draggedGroups, target);
                 return;
             }
 
             // Check if we're moving files between groups
             const draggedFiles = items.filter(item => item.itemType === 'file' && item.file);
             if (draggedFiles.length > 0 && targetGroup) {
-                for (const item of draggedFiles) {
-                    if (item.group.id !== targetGroup.id && item.file) {
-                        // Remove from source group
-                        await this.storageService.removeFileFromGroup(item.group.id, item.file.path);
-                        // Add to target group
-                        await this.storageService.addFileToGroup(targetGroup.id, item.file);
-                    }
+                await this.handleFileDrop(draggedFiles, targetGroup);
+                return;
+            }
+        }
+
+        // Handle files dropped from explorer or tabs (text/uri-list) - only if no internal data handled it
+        const uriListItem = dataTransfer.get('text/uri-list');
+        if (uriListItem && targetGroup) {
+            await this.handleExternalFileDrop(uriListItem, targetGroup);
+        }
+    }
+
+    /**
+     * Handle dropping groups onto other groups (make subgroup) or onto empty space (move to root)
+     */
+    private async handleGroupDrop(draggedGroups: FileGroupTreeItem[], target: FileGroupTreeItem | undefined): Promise<void> {
+        // If target is undefined, move dragged groups to root level
+        if (!target) {
+            for (const draggedItem of draggedGroups) {
+                const draggedGroup = draggedItem.group;
+
+                // Only move if it's currently a subgroup
+                if (draggedGroup.parentId) {
+                    await this.storageService.updateGroup(draggedGroup.id, {
+                        parentId: undefined
+                    });
                 }
+            }
+            this.provider.refresh();
+            return;
+        }
+
+        const targetGroup = target.itemType === 'group' || target.itemType === 'subgroup' ? target.group : null;
+
+        if (!targetGroup) {
+            return;
+        }
+
+        for (const draggedItem of draggedGroups) {
+            const draggedGroup = draggedItem.group;
+
+            // Don't drop on self
+            if (draggedGroup.id === targetGroup.id) {
+                continue;
+            }
+
+            // Don't drop a parent onto its own child (would create a cycle)
+            if (this.isDescendant(targetGroup.id, draggedGroup.id)) {
+                vscode.window.showWarningMessage('Cannot move a group into its own subgroup');
+                continue;
+            }
+
+            // Make the dragged group a subgroup of the target
+            await this.storageService.updateGroup(draggedGroup.id, {
+                parentId: targetGroup.id
+            });
+        }
+
+        this.provider.refresh();
+    }
+
+    /**
+     * Check if potentialDescendant is a descendant of ancestorId
+     */
+    private isDescendant(potentialDescendantId: string, ancestorId: string): boolean {
+        const groups = this.storageService.getGroups();
+        let current = groups.find(g => g.id === potentialDescendantId);
+
+        while (current && current.parentId) {
+            if (current.parentId === ancestorId) {
+                return true;
+            }
+            current = groups.find(g => g.id === current!.parentId);
+        }
+
+        return false;
+    }
+
+    /**
+     * Handle dropping files between groups
+     */
+    private async handleFileDrop(draggedFiles: FileGroupTreeItem[], targetGroup: FileGroup): Promise<void> {
+        let movedCount = 0;
+
+        for (const item of draggedFiles) {
+            if (item.file && item.group.id !== targetGroup.id) {
+                // Remove from source group
+                await this.storageService.removeFileFromGroup(item.group.id, item.file.path);
+                // Add to target group
+                const added = await this.storageService.addFileToGroup(targetGroup.id, item.file);
+                if (added) {
+                    movedCount++;
+                }
+            }
+        }
+
+        if (movedCount > 0) {
+            this.provider.refresh();
+            vscode.window.showInformationMessage(
+                `Moved ${movedCount} file(s) to "${targetGroup.name}"`
+            );
+        }
+    }
+
+    /**
+     * Handle files dropped from external sources (explorer, tabs)
+     */
+    private async handleExternalFileDrop(uriListItem: vscode.DataTransferItem, targetGroup: FileGroup): Promise<void> {
+        const uriListValue = await uriListItem.asString();
+        const uris = uriListValue
+            .split(/[\r\n]+/)
+            .filter(line => line.trim().length > 0)
+            .map(line => {
+                try {
+                    return vscode.Uri.parse(line.trim());
+                } catch {
+                    return null;
+                }
+            })
+            .filter((uri): uri is vscode.Uri => uri !== null && uri.scheme === 'file');
+
+        if (uris.length > 0) {
+            const files: GroupFile[] = uris.map(uri => ({
+                path: uri.fsPath,
+                name: uri.fsPath.split(/[/\\]/).pop() || 'unknown'
+            }));
+
+            const addedCount = await this.storageService.addFilesToGroup(targetGroup.id, files);
+            if (addedCount > 0) {
                 this.provider.refresh();
+                vscode.window.showInformationMessage(
+                    `Added ${addedCount} file(s) to "${targetGroup.name}"`
+                );
+            } else {
+                vscode.window.showInformationMessage(
+                    'All files are already in the group'
+                );
             }
         }
     }

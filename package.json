@@ -1,10 +1,37 @@
 {
   "name": "file-groups",
   "displayName": "File Groups",
-  "description": "Organize files from different folders into groups for quick access",
-  "version": "0.0.1",
+  "description": "Organize files from different folders into custom groups with colors, icons, and subgroups. Perfect for managing related files across large projects.",
+  "version": "1.0.0",
+  "publisher": "MiszterSoul",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MiszterSoul/codegroup"
+  },
+  "bugs": {
+    "url": "https://github.com/MiszterSoul/codegroup/issues"
+  },
+  "homepage": "https://github.com/MiszterSoul/codegroup#readme",
+  "keywords": [
+    "file",
+    "groups",
+    "organize",
+    "workspace",
+    "folders",
+    "bookmarks",
+    "favorites",
+    "collections",
+    "project management",
+    "productivity"
+  ],
+  "galleryBanner": {
+    "color": "#5C6BC0",
+    "theme": "dark"
+  },
   "engines": {
-    "vscode": "^1.106.1"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
@@ -17,7 +44,7 @@
         {
           "id": "fileGroupsContainer",
           "title": "File Groups",
-          "icon": "$(files)"
+          "icon": "$(package)"
         }
       ]
     },
@@ -44,8 +71,20 @@
         "category": "File Groups"
       },
       {
+        "command": "fileGroups.createSubgroup",
+        "title": "Create Subgroup",
+        "icon": "$(new-folder)",
+        "category": "File Groups"
+      },
+      {
         "command": "fileGroups.deleteGroup",
         "title": "Delete Group",
+        "icon": "$(trash)",
+        "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.deleteGroupFromTitle",
+        "title": "Delete Group...",
         "icon": "$(trash)",
         "category": "File Groups"
       },
@@ -98,6 +137,24 @@
         "category": "File Groups"
       },
       {
+        "command": "fileGroups.expandAll",
+        "title": "Expand All",
+        "icon": "$(expand-all)",
+        "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.collapseAll",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)",
+        "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.moveToRoot",
+        "title": "Move to Root Level",
+        "icon": "$(arrow-up)",
+        "category": "File Groups"
+      },
+      {
         "command": "fileGroups.refresh",
         "title": "Refresh",
         "icon": "$(refresh)",
@@ -109,12 +166,27 @@
         {
           "command": "fileGroups.createGroup",
           "when": "view == fileGroupsView",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "fileGroups.deleteGroupFromTitle",
+          "when": "view == fileGroupsView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "fileGroups.expandAll",
+          "when": "view == fileGroupsView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "fileGroups.collapseAll",
+          "when": "view == fileGroupsView",
+          "group": "navigation@4"
         },
         {
           "command": "fileGroups.refresh",
           "when": "view == fileGroupsView",
-          "group": "navigation"
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
@@ -139,6 +211,11 @@
           "group": "1_actions@2"
         },
         {
+          "command": "fileGroups.createSubgroup",
+          "when": "view == fileGroupsView && viewItem == group",
+          "group": "2_modify@0"
+        },
+        {
           "command": "fileGroups.renameGroup",
           "when": "view == fileGroupsView && viewItem == group",
           "group": "2_modify@1"
@@ -156,6 +233,56 @@
         {
           "command": "fileGroups.deleteGroup",
           "when": "view == fileGroupsView && viewItem == group",
+          "group": "3_delete"
+        },
+        {
+          "command": "fileGroups.openAll",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "inline@1"
+        },
+        {
+          "command": "fileGroups.closeAll",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "inline@2"
+        },
+        {
+          "command": "fileGroups.openAll",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "fileGroups.closeAll",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "fileGroups.createSubgroup",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "2_modify@0"
+        },
+        {
+          "command": "fileGroups.renameGroup",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "2_modify@1"
+        },
+        {
+          "command": "fileGroups.setGroupIcon",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "2_modify@2"
+        },
+        {
+          "command": "fileGroups.setGroupColor",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "2_modify@3"
+        },
+        {
+          "command": "fileGroups.moveToRoot",
+          "when": "view == fileGroupsView && viewItem == subgroup",
+          "group": "2_modify@4"
+        },
+        {
+          "command": "fileGroups.deleteGroup",
+          "when": "view == fileGroupsView && viewItem == subgroup",
           "group": "3_delete"
         },
         {
@@ -191,12 +318,14 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package": "vsce package",
+    "publish": "vsce publish"
   },
   "devDependencies": {
-    "@types/vscode": "^1.106.1",
+    "@types/vscode": "^1.74.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
+    "@types/node": "18.x",
     "typescript-eslint": "^8.46.3",
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
