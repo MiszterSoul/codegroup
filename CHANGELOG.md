@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Subgroups** for hierarchical organization (nested groups within groups)
 - **30+ custom icons** to visually distinguish your groups
 - **Color coding** for groups - applied to both icons and file tabs/explorer
+  - 9 predefined theme colors (Red, Orange, Yellow, Green, Blue, Purple, Cyan, Magenta, White)
+  - **Custom hex colors** - enter any hex color code (e.g., `#FF5733`)
 - **Multiple ways to add files**:
   - Right-click in Explorer → "Add to File Group"
   - Right-click on editor tabs → "Add to File Group"
@@ -20,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Drag groups into other groups to create subgroups
   - Drag subgroups to empty space to move them to root level
   - Drag files between groups to reorganize
+- **Smart file tracking**:
+  - Automatic handling of file renames (files stay in groups with updated names)
+  - Automatic handling of file deletions (deleted files are removed from groups)
+  - "Clean Up Missing Files" command for manual cleanup
 - **Quick actions**:
   - Open All - open all files in a group (including subgroups)
   - Close All - close files from a specific group
@@ -33,3 +39,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workspace state synchronization with file-based storage
 - Relative paths for cross-machine compatibility
 - File decoration provider for tab and explorer coloring
+- Hex color to theme color mapping for VS Code API compatibility
+- File system watcher for real-time file change detection

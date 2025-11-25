@@ -5,7 +5,13 @@
 
 **Organize files from different folders into named groups for quick access.** Perfect for large projects where you need to work with related files scattered across multiple directories.
 
-![File Groups Demo](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/demo.gif)
+## 📸 Screenshots
+
+### Main View - Organize Files into Groups
+![Main View](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-main.png)
+
+### Right-Click Context Menu
+![Context Menu](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-context-menu.png)
 
 ## ✨ Features
 
@@ -17,7 +23,8 @@
 
 ### 🎨 Customize Groups
 - **Icons**: Choose from 30+ built-in icons (folder, rocket, flame, star, etc.)
-- **Colors**: Apply colors to group icons AND file tabs/explorer for visual distinction
+- **Colors**: Apply predefined colors OR **custom hex colors** to group icons AND file tabs/explorer
+- Enter any hex color code (e.g., `#FF5733`, `#3498DB`) for precise color matching
 
 ### ➕ Multiple Ways to Add Files
 - **Right-click in Explorer**: Select files → "Add to File Group"
@@ -36,6 +43,11 @@
 - **Drag groups onto other groups** to create subgroups
 - **Drag subgroups to empty space** to move them back to root level
 - Move files between groups by dragging
+
+### 🔃 Smart File Tracking
+- **Automatic rename handling**: When you rename a file in VS Code, it stays in its group with the new name
+- **Automatic deletion handling**: Deleted files are automatically removed from groups
+- **Clean Up command**: Manually remove any missing files that were deleted outside VS Code
 
 ### 💾 Git-Friendly Storage
 - Groups are saved to `.vscode/file-groups.json`
@@ -83,6 +95,7 @@ All commands are available in the Command Palette (Ctrl+Shift+P):
 | `File Groups: Delete Group...` | Delete a group (with picker) |
 | `File Groups: Expand All` | Expand all groups |
 | `File Groups: Collapse All` | Collapse all groups |
+| `File Groups: Clean Up Missing Files` | Remove files that no longer exist |
 | `File Groups: Refresh` | Refresh the groups view |
 
 ## Storage

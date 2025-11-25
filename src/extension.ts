@@ -35,8 +35,73 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(treeView);
 
+    // Set up file system watcher for file renames, deletes, and moves
+    setupFileWatcher(context);
+
     // Register all commands
     registerCommands(context);
+}
+
+/**
+ * Set up file system watcher to handle renamed, deleted, and moved files
+ */
+function setupFileWatcher(context: vscode.ExtensionContext) {
+    // Watch for file deletions
+    const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*');
+
+    // Handle file deletions - remove deleted files from groups
+    fileWatcher.onDidDelete(async (uri) => {
+        const deletedPath = uri.fsPath;
+        const groups = storageService.getGroups();
+        let changed = false;
+
+        for (const group of groups) {
+            const originalLength = group.files.length;
+            group.files = group.files.filter(f => f.path !== deletedPath);
+            if (group.files.length !== originalLength) {
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            await storageService.saveGroups(groups);
+            fileGroupsProvider.refresh();
+        }
+    });
+
+    context.subscriptions.push(fileWatcher);
+
+    // Watch for file renames/moves using the onDidRenameFiles event
+    context.subscriptions.push(
+        vscode.workspace.onDidRenameFiles(async (event) => {
+            const groups = storageService.getGroups();
+            let changed = false;
+
+            for (const { oldUri, newUri } of event.files) {
+                const oldPath = oldUri.fsPath;
+                const newPath = newUri.fsPath;
+                const newName = newPath.split(/[/\\]/).pop() || 'unknown';
+
+                for (const group of groups) {
+                    const fileIndex = group.files.findIndex(f => f.path === oldPath);
+                    if (fileIndex !== -1) {
+                        // Update the file path and name
+                        group.files[fileIndex] = {
+                            path: newPath,
+                            name: newName
+                        };
+                        changed = true;
+                    }
+                }
+            }
+
+            if (changed) {
+                await storageService.saveGroups(groups);
+                fileGroupsProvider.refresh();
+                fileDecorationProvider.refresh();
+            }
+        })
+    );
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
@@ -352,15 +417,35 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
-    // Remove file from group
+    // Remove file from group (supports multi-select)
     context.subscriptions.push(
-        vscode.commands.registerCommand('fileGroups.removeFile', async (item: FileGroupTreeItem) => {
-            if (item?.itemType === 'file' && item.file) {
-                const fileUri = vscode.Uri.file(item.file.path);
-                await storageService.removeFileFromGroup(item.group.id, item.file.path);
-                fileGroupsProvider.refresh();
-                // Refresh decoration for removed file
-                fileDecorationProvider.refresh([fileUri]);
+        vscode.commands.registerCommand('fileGroups.removeFile', async (item: FileGroupTreeItem, selectedItems?: FileGroupTreeItem[]) => {
+            // Use selected items if available (multi-select), otherwise use single item
+            const itemsToRemove = selectedItems && selectedItems.length > 0
+                ? selectedItems.filter(i => i.itemType === 'file' && i.file)
+                : (item?.itemType === 'file' && item.file ? [item] : []);
+
+            if (itemsToRemove.length === 0) {
+                return;
+            }
+
+            const urisToRefresh: vscode.Uri[] = [];
+
+            for (const fileItem of itemsToRemove) {
+                if (fileItem.file) {
+                    urisToRefresh.push(vscode.Uri.file(fileItem.file.path));
+                    await storageService.removeFileFromGroup(fileItem.group.id, fileItem.file.path);
+                }
+            }
+
+            fileGroupsProvider.refresh();
+            // Refresh decorations for removed files
+            if (urisToRefresh.length > 0) {
+                fileDecorationProvider.refresh(urisToRefresh);
+            }
+
+            if (itemsToRemove.length > 1) {
+                vscode.window.showInformationMessage(`Removed ${itemsToRemove.length} files from groups`);
             }
         })
     );
@@ -442,6 +527,38 @@ function registerCommands(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.refresh', () => {
             fileGroupsProvider.refresh();
+        })
+    );
+
+    // Clean up missing files (files that no longer exist)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.cleanupMissingFiles', async () => {
+            const groups = storageService.getGroups();
+            let removedCount = 0;
+            const fs = require('fs');
+
+            for (const group of groups) {
+                const originalLength = group.files.length;
+                group.files = group.files.filter(file => {
+                    try {
+                        return fs.existsSync(file.path);
+                    } catch {
+                        return false;
+                    }
+                });
+                removedCount += originalLength - group.files.length;
+            }
+
+            if (removedCount > 0) {
+                await storageService.saveGroups(groups);
+                fileGroupsProvider.refresh();
+                fileDecorationProvider.refresh();
+                vscode.window.showInformationMessage(
+                    `Removed ${removedCount} missing file(s) from groups`
+                );
+            } else {
+                vscode.window.showInformationMessage('All files in groups exist');
+            }
         })
     );
 }

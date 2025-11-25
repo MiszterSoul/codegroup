@@ -159,6 +159,12 @@
         "title": "Refresh",
         "icon": "$(refresh)",
         "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.cleanupMissingFiles",
+        "title": "Clean Up Missing Files",
+        "icon": "$(clear-all)",
+        "category": "File Groups"
       }
     ],
     "menus": {

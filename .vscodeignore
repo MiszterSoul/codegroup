@@ -13,3 +13,4 @@ node_modules/**
 .git/**
 images/generate-icon.html
 images/icon.svg
+images/screenshot-guide.html
