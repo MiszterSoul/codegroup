@@ -55,7 +55,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         'application/vnd.code.tree.filegroupsview',
         'text/uri-list'
     ];
-    
+
     // We can drag items from this tree
     readonly dragMimeTypes = ['text/uri-list'];
 
@@ -80,7 +80,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
                 .join('\r\n');
             dataTransfer.set('text/uri-list', new vscode.DataTransferItem(uris));
         }
-        
+
         // Set internal drag data for reordering
         dataTransfer.set(
             'application/vnd.code.tree.filegroupsview',
@@ -98,7 +98,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
     ): Promise<void> {
         // Determine target group
         let targetGroup: FileGroup | undefined;
-        
+
         if (target) {
             if (target.itemType === 'group') {
                 targetGroup = target.group;
@@ -148,7 +148,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         const internalData = dataTransfer.get('application/vnd.code.tree.filegroupsview');
         if (internalData) {
             const items = internalData.value as FileGroupTreeItem[];
-            
+
             // Check if we're reordering groups
             const draggedGroups = items.filter(item => item.itemType === 'group');
             if (draggedGroups.length > 0 && target?.itemType === 'group') {
@@ -156,16 +156,16 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
                 const groups = this.storageService.getGroups().sort((a, b) => a.order - b.order);
                 const draggedGroupIds = new Set(draggedGroups.map(g => g.group.id));
                 const targetIndex = groups.findIndex(g => g.id === target.group.id);
-                
+
                 if (targetIndex !== -1) {
                     // Remove dragged groups
                     const remaining = groups.filter(g => !draggedGroupIds.has(g.id));
                     const dragged = groups.filter(g => draggedGroupIds.has(g.id));
-                    
+
                     // Insert at new position
                     const newTargetIndex = remaining.findIndex(g => g.id === target.group.id);
                     remaining.splice(newTargetIndex, 0, ...dragged);
-                    
+
                     // Update order
                     const newOrder = remaining.map(g => g.id);
                     await this.storageService.reorderGroups(newOrder);

@@ -14,7 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Create tree view with drag and drop support
     const dragDropController = new FileGroupsDragDropController(storageService, fileGroupsProvider);
-    
+
     treeView = vscode.window.createTreeView('fileGroupsView', {
         treeDataProvider: fileGroupsProvider,
         dragAndDropController: dragDropController,
@@ -145,7 +145,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
             // Use all selected URIs if available, otherwise just the single URI
             const filesToAdd = uris && uris.length > 0 ? uris : (uri ? [uri] : []);
-            
+
             if (filesToAdd.length === 0) {
                 return;
             }
@@ -168,7 +168,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
                 const addedCount = await storageService.addFilesToGroup(selected.groupId, files);
                 fileGroupsProvider.refresh();
-                
+
                 if (addedCount > 0) {
                     vscode.window.showInformationMessage(
                         `Added ${addedCount} file(s) to group`
@@ -187,7 +187,7 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.addFileFromTab', async (uri: vscode.Uri) => {
             // If no URI provided, try to get from active editor
             const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
-            
+
             if (!fileUri || fileUri.scheme !== 'file') {
                 vscode.window.showWarningMessage('No file available to add');
                 return;
@@ -216,9 +216,9 @@ function registerCommands(context: vscode.ExtensionContext) {
                     for (const file of group.files) {
                         try {
                             const uri = vscode.Uri.file(file.path);
-                            await vscode.window.showTextDocument(uri, { 
+                            await vscode.window.showTextDocument(uri, {
                                 preview: false,
-                                preserveFocus: true 
+                                preserveFocus: true
                             });
                         } catch (error) {
                             vscode.window.showWarningMessage(`Could not open: ${file.name}`);

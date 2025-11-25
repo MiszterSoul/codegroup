@@ -127,14 +127,14 @@ export class StorageService {
             }
             return null;
         }).filter((g): g is FileGroup => g !== null);
-        
+
         // Add any groups not in the new order at the end
         const remainingGroups = groups.filter(g => !groupIds.includes(g.id));
         remainingGroups.forEach((g, i) => {
             g.order = reordered.length + i;
             reordered.push(g);
         });
-        
+
         await this.saveGroups(reordered);
     }
 }

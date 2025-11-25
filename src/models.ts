@@ -96,8 +96,8 @@ export class FileGroupTreeItem extends vscode.TreeItem {
     ) {
         super(
             file ? file.name : group.name,
-            file 
-                ? vscode.TreeItemCollapsibleState.None 
+            file
+                ? vscode.TreeItemCollapsibleState.None
                 : vscode.TreeItemCollapsibleState.Expanded
         );
 
@@ -117,7 +117,7 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             // Group item
             this.tooltip = `${group.name} (${group.files.length} files)`;
             this.description = `${group.files.length} files`;
-            
+
             // Set icon with optional color
             if (group.color) {
                 this.iconPath = new vscode.ThemeIcon(
