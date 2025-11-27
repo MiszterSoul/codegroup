@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { FileGroup, FileGroupTreeItem, GroupFile, GROUP_ICONS, GROUP_COLORS, generateId, isHexColor } from './models';
+import { CURRENT_USERNAME } from './userInfo';
 import { StorageService } from './storageService';
 import { FileGroupsProvider, FileGroupsDragDropController } from './fileGroupsProvider';
 import { FileGroupDecorationProvider } from './fileDecorationProvider';
@@ -8,6 +9,59 @@ let storageService: StorageService;
 let fileGroupsProvider: FileGroupsProvider;
 let fileDecorationProvider: FileGroupDecorationProvider;
 let treeView: vscode.TreeView<FileGroupTreeItem>;
+
+/**
+ * Update the tree view badge to show group count
+ */
+function updateTreeViewBadge(): void {
+    const groups = storageService.getRootGroups();
+    const pinnedCount = groups.filter(g => g.pinned).length;
+
+    if (pinnedCount > 0) {
+        treeView.badge = {
+            value: pinnedCount,
+            tooltip: `${pinnedCount} pinned group(s)`
+        };
+    } else {
+        treeView.badge = {
+            value: groups.length,
+            tooltip: `${groups.length} group(s)`
+        };
+    }
+}
+
+/**
+ * Check for missing files and prompt user to clean up
+ */
+async function checkForMissingFiles(): Promise<void> {
+    const groups = storageService.getGroups();
+    const fs = require('fs');
+    let missingCount = 0;
+
+    for (const group of groups) {
+        for (const file of group.files) {
+            try {
+                if (!fs.existsSync(file.path)) {
+                    missingCount++;
+                }
+            } catch {
+                missingCount++;
+            }
+        }
+    }
+
+    if (missingCount > 0) {
+        const action = await vscode.window.showWarningMessage(
+            `Found ${missingCount} missing file(s) in your groups. Would you like to clean them up?`,
+            'Clean Up',
+            'Ignore'
+        );
+
+        if (action === 'Clean Up') {
+            await vscode.commands.executeCommand('fileGroups.cleanupMissingFiles');
+        }
+    }
+}
 
 export async function activate(context: vscode.ExtensionContext) {
     // Initialize services
@@ -40,11 +94,35 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(treeView);
 
+    context.subscriptions.push(
+        treeView.onDidCollapseElement((event) => {
+            if (event.element.itemType === 'group' || event.element.itemType === 'subgroup') {
+                void storageService.updateGroup(event.element.group.id, { collapsed: true });
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        treeView.onDidExpandElement((event) => {
+            if (event.element.itemType === 'group' || event.element.itemType === 'subgroup') {
+                void storageService.updateGroup(event.element.group.id, { collapsed: false });
+            }
+        })
+    );
+
     // Set up file system watcher for file renames, deletes, and moves
     setupFileWatcher(context);
 
     // Register all commands
     registerCommands(context);
+
+    // Update tree view badge
+    updateTreeViewBadge();
+
+    // Check for missing files after a short delay
+    setTimeout(() => {
+        void checkForMissingFiles();
+    }, 3000);
 }
 
 /**
@@ -109,6 +187,34 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
     );
 }
 
+async function pickGroupForCommand(placeHolder: string, initialItem?: FileGroupTreeItem): Promise<FileGroup | undefined> {
+    if (initialItem && (initialItem.itemType === 'group' || initialItem.itemType === 'subgroup')) {
+        return initialItem.group;
+    }
+
+    const groups = storageService.getGroups();
+    if (groups.length === 0) {
+        vscode.window.showInformationMessage('No groups available');
+        return undefined;
+    }
+
+    const groupItems = groups.map(g => ({
+        label: `$(${g.icon || 'folder'}) ${g.name}`,
+        description: g.parentId ? '(subgroup)' : '',
+        groupId: g.id
+    }));
+
+    const selected = await vscode.window.showQuickPick(groupItems, {
+        placeHolder
+    });
+
+    if (!selected) {
+        return undefined;
+    }
+
+    return groups.find(g => g.id === selected.groupId);
+}
+
 function registerCommands(context: vscode.ExtensionContext) {
     // Create a new root group
     context.subscriptions.push(
@@ -127,7 +233,9 @@ function registerCommands(context: vscode.ExtensionContext) {
                     color: '',
                     files: [],
                     order: groups.length,
-                    parentId: undefined
+                    parentId: undefined,
+                    createdBy: CURRENT_USERNAME,
+                    collapsed: false
                 };
                 await storageService.createGroup(newGroup);
                 fileGroupsProvider.refresh();
@@ -153,7 +261,9 @@ function registerCommands(context: vscode.ExtensionContext) {
                         color: item.group.color, // Inherit parent color
                         files: [],
                         order: groups.length,
-                        parentId: item.group.id
+                        parentId: item.group.id,
+                        createdBy: CURRENT_USERNAME,
+                        collapsed: false
                     };
                     await storageService.createGroup(newGroup);
                     fileGroupsProvider.refresh();
@@ -344,6 +454,170 @@ function registerCommands(context: vscode.ExtensionContext) {
                     const uris = allFiles.map(f => vscode.Uri.file(f.path));
                     fileDecorationProvider.refresh(uris);
                 }
+            }
+        })
+    );
+
+    // Edit short description/summary
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.editGroupSummary', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand('Select group to edit summary', item);
+            if (!targetGroup) {
+                return;
+            }
+
+            const value = await vscode.window.showInputBox({
+                prompt: 'Enter a short description (shown next to the name)',
+                placeHolder: 'API endpoints, build scripts, etc.',
+                value: targetGroup.shortDescription ?? '',
+                ignoreFocusOut: true
+            });
+
+            if (value === undefined) {
+                return;
+            }
+
+            const trimmed = value.trim();
+            await storageService.updateGroup(targetGroup.id, {
+                shortDescription: trimmed.length > 0 ? trimmed : undefined
+            });
+            fileGroupsProvider.refresh();
+        })
+    );
+
+    // Edit long-form description/notes
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.editGroupDetails', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand('Select group to edit description', item);
+            if (!targetGroup) {
+                return;
+            }
+
+            const value = await vscode.window.showInputBox({
+                prompt: 'Enter a longer description (Markdown supported)',
+                placeHolder: 'Explain why this group matters or how to use it',
+                value: targetGroup.details ?? '',
+                ignoreFocusOut: true
+            });
+
+            if (value === undefined) {
+                return;
+            }
+
+            const trimmed = value.trim();
+            await storageService.updateGroup(targetGroup.id, {
+                details: trimmed.length > 0 ? trimmed : undefined
+            });
+            fileGroupsProvider.refresh();
+        })
+    );
+
+    // Pin group to top
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.pinGroup', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand('Select group to pin', item);
+            if (!targetGroup) {
+                return;
+            }
+
+            await storageService.updateGroup(targetGroup.id, { pinned: true });
+            fileGroupsProvider.refresh();
+            updateTreeViewBadge();
+        })
+    );
+
+    // Unpin group
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.unpinGroup', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand('Select group to unpin', item);
+            if (!targetGroup) {
+                return;
+            }
+
+            await storageService.updateGroup(targetGroup.id, { pinned: false });
+            fileGroupsProvider.refresh();
+            updateTreeViewBadge();
+        })
+    );
+
+    // Set custom badge text
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.setBadgeText', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand('Select group to set badge', item);
+            if (!targetGroup) {
+                return;
+            }
+
+            const value = await vscode.window.showInputBox({
+                prompt: 'Enter 1-2 characters for the file badge (leave empty for default)',
+                placeHolder: 'e.g., A, 🔥, UI',
+                value: targetGroup.badgeText ?? '',
+                ignoreFocusOut: true,
+                validateInput: (input) => {
+                    if (input.length > 2) {
+                        return 'Badge must be 1-2 characters';
+                    }
+                    return null;
+                }
+            });
+
+            if (value === undefined) {
+                return;
+            }
+
+            const trimmed = value.trim();
+            await storageService.updateGroup(targetGroup.id, {
+                badgeText: trimmed.length > 0 ? trimmed : undefined
+            });
+            fileGroupsProvider.refresh();
+            // Refresh decorations for files in this group
+            const allFiles = storageService.getAllFilesInGroup(targetGroup.id);
+            const uris = allFiles.map(f => vscode.Uri.file(f.path));
+            fileDecorationProvider.refresh(uris);
+        })
+    );
+
+    // Find duplicate files (files in multiple groups)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.findDuplicates', async () => {
+            const groups = storageService.getGroups();
+            const fileToGroups = new Map<string, string[]>();
+
+            for (const group of groups) {
+                for (const file of group.files) {
+                    const existing = fileToGroups.get(file.path) || [];
+                    existing.push(group.name);
+                    fileToGroups.set(file.path, existing);
+                }
+            }
+
+            const duplicates: { path: string; groups: string[] }[] = [];
+            for (const [path, groupNames] of fileToGroups) {
+                if (groupNames.length > 1) {
+                    duplicates.push({ path, groups: groupNames });
+                }
+            }
+
+            if (duplicates.length === 0) {
+                vscode.window.showInformationMessage('No duplicate files found across groups.');
+                return;
+            }
+
+            const items = duplicates.map(d => ({
+                label: d.path.split(/[/\\]/).pop() || d.path,
+                description: `In ${d.groups.length} groups`,
+                detail: `Groups: ${d.groups.join(', ')}`,
+                path: d.path
+            }));
+
+            const selected = await vscode.window.showQuickPick(items, {
+                placeHolder: `Found ${duplicates.length} file(s) in multiple groups`,
+                canPickMany: false
+            });
+
+            if (selected) {
+                const uri = vscode.Uri.file(selected.path);
+                await vscode.window.showTextDocument(uri);
             }
         })
     );

@@ -2,7 +2,7 @@
   "name": "codegroup-file-organizer",
   "displayName": "CodeGroup - File Organizer",
   "description": "Organize files from different folders into custom groups with colors, icons, and subgroups. Perfect for managing related files across large projects.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "PeterDev",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -107,6 +107,18 @@
         "category": "File Groups"
       },
       {
+        "command": "fileGroups.editGroupSummary",
+        "title": "Edit Summary",
+        "icon": "$(note)",
+        "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.editGroupDetails",
+        "title": "Edit Description",
+        "icon": "$(comment-discussion)",
+        "category": "File Groups"
+      },
+      {
         "command": "fileGroups.addFile",
         "title": "Add to File Group",
         "icon": "$(add)",
@@ -165,6 +177,30 @@
         "title": "Clean Up Missing Files",
         "icon": "$(clear-all)",
         "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.pinGroup",
+        "title": "Pin Group",
+        "icon": "$(pin)",
+        "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.unpinGroup",
+        "title": "Unpin Group",
+        "icon": "$(pinned)",
+        "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.setBadgeText",
+        "title": "Set Badge Text",
+        "icon": "$(tag)",
+        "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.findDuplicates",
+        "title": "Find Duplicate Files",
+        "icon": "$(copy)",
+        "category": "File Groups"
       }
     ],
     "menus": {
@@ -193,6 +229,11 @@
           "command": "fileGroups.refresh",
           "when": "view == fileGroupsView",
           "group": "navigation@5"
+        },
+        {
+          "command": "fileGroups.findDuplicates",
+          "when": "view == fileGroupsView",
+          "group": "navigation@6"
         }
       ],
       "view/context": [
@@ -205,97 +246,147 @@
       "view/item/context": [
         {
           "command": "fileGroups.openAll",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "inline@1"
         },
         {
           "command": "fileGroups.closeAll",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "inline@2"
         },
         {
           "command": "fileGroups.openAll",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "1_actions@1"
         },
         {
           "command": "fileGroups.closeAll",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "1_actions@2"
         },
         {
           "command": "fileGroups.createSubgroup",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "2_modify@0"
         },
         {
           "command": "fileGroups.renameGroup",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "2_modify@1"
         },
         {
           "command": "fileGroups.setGroupIcon",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "2_modify@2"
         },
         {
           "command": "fileGroups.setGroupColor",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "2_modify@3"
         },
         {
+          "command": "fileGroups.editGroupSummary",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
+          "group": "2_modify@4"
+        },
+        {
+          "command": "fileGroups.editGroupDetails",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
+          "group": "2_modify@5"
+        },
+        {
+          "command": "fileGroups.pinGroup",
+          "when": "view == fileGroupsView && viewItem == group_unpinned",
+          "group": "2_modify@6"
+        },
+        {
+          "command": "fileGroups.unpinGroup",
+          "when": "view == fileGroupsView && viewItem == group_pinned",
+          "group": "2_modify@6"
+        },
+        {
+          "command": "fileGroups.setBadgeText",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
+          "group": "2_modify@7"
+        },
+        {
           "command": "fileGroups.deleteGroup",
-          "when": "view == fileGroupsView && viewItem == group",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "3_delete"
         },
         {
           "command": "fileGroups.openAll",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "inline@1"
         },
         {
           "command": "fileGroups.closeAll",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "inline@2"
         },
         {
           "command": "fileGroups.openAll",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "1_actions@1"
         },
         {
           "command": "fileGroups.closeAll",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "1_actions@2"
         },
         {
           "command": "fileGroups.createSubgroup",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "2_modify@0"
         },
         {
           "command": "fileGroups.renameGroup",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "2_modify@1"
         },
         {
           "command": "fileGroups.setGroupIcon",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "2_modify@2"
         },
         {
           "command": "fileGroups.setGroupColor",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "2_modify@3"
         },
         {
           "command": "fileGroups.moveToRoot",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "2_modify@4"
         },
         {
+          "command": "fileGroups.editGroupSummary",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
+          "group": "2_modify@5"
+        },
+        {
+          "command": "fileGroups.editGroupDetails",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
+          "group": "2_modify@6"
+        },
+        {
+          "command": "fileGroups.pinGroup",
+          "when": "view == fileGroupsView && viewItem == subgroup_unpinned",
+          "group": "2_modify@7"
+        },
+        {
+          "command": "fileGroups.unpinGroup",
+          "when": "view == fileGroupsView && viewItem == subgroup_pinned",
+          "group": "2_modify@7"
+        },
+        {
+          "command": "fileGroups.setBadgeText",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
+          "group": "2_modify@8"
+        },
+        {
           "command": "fileGroups.deleteGroup",
-          "when": "view == fileGroupsView && viewItem == subgroup",
+          "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "3_delete"
         },
         {

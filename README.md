@@ -25,6 +25,8 @@
 - **Icons**: Choose from 30+ built-in icons (folder, rocket, flame, star, etc.)
 - **Colors**: Apply predefined colors OR **custom hex colors** to group icons AND file tabs/explorer
 - Enter any hex color code (e.g., `#FF5733`, `#3498DB`) for precise color matching
+- **Descriptions**: Add a short summary plus a longer Markdown-friendly note for every group
+- **Custom badge text**: Set a 1-2 character badge for file decorations (default is first letter of group name)
 
 ### ➕ Multiple Ways to Add Files
 - **Right-click in Explorer**: Select files → "Add to File Group"
@@ -36,6 +38,15 @@
 - **Close All**: Close only the files belonging to a group (keeps other tabs)
 - **Expand All / Collapse All**: Quick navigation buttons in the title bar
 - **Delete from Title Bar**: Quick delete button without right-clicking
+- **Smart collapse state**: Groups remember whether you left them open or closed between sessions
+- **Pin / Unpin groups**: Pin frequently used groups to always appear at the top (📌). The right-click menu shows "Pin" or "Unpin" based on the current state.
+- **Activity bar badge**: The sidebar icon shows the count of groups or pinned groups
+
+### 📝 Document Your Groups
+- Store a short summary that shows beside each group name
+- Capture detailed notes (Markdown supported) to explain the purpose of a group
+- Display the creator's username when it differs from yours so team ownership stays visible
+- Groups with extra notes surface a 📝 indicator so teammates know there's more info
 
 ### 🔄 Drag & Drop Support
 - Drag files from Explorer into groups
@@ -48,11 +59,18 @@
 - **Automatic rename handling**: When you rename a file in VS Code, it stays in its group with the new name
 - **Automatic deletion handling**: Deleted files are automatically removed from groups
 - **Clean Up command**: Manually remove any missing files that were deleted outside VS Code
+- **Auto-cleanup prompt**: On startup, prompts you if missing files are detected
+- **Find duplicates**: Quickly locate files that appear in multiple groups
+
+### 📊 Statistics on Hover
+- Hover over any group to see file count, folder count, and subgroup count
+- Summary, description, and creator info are all shown in the tooltip
 
 ### 💾 Git-Friendly Storage
 - Groups are saved to `.vscode/file-groups.json`
 - **Commit to Git** to share group configurations with your team
 - Relative paths for portability across machines
+- Creator usernames travel with the file so teammates know who set things up
 
 ## Usage
 
@@ -70,6 +88,12 @@
    - Rename
    - Set Icon
    - Set Color
+   - Edit Summary
+   - Edit Description
+   - Show Description
+   - Pin/Unpin Group
+   - Set Badge Text
+   - Show Statistics
    - Delete
 
 ### Creating Subgroups
@@ -93,6 +117,12 @@ All commands are available in the Command Palette (Ctrl+Shift+P):
 | `File Groups: Create Group` | Create a new root file group |
 | `File Groups: Create Subgroup` | Create a subgroup under selected group |
 | `File Groups: Delete Group...` | Delete a group (with picker) |
+| `File Groups: Edit Summary` | Set or update the short description for a group |
+| `File Groups: Edit Description` | Add longer Markdown-friendly notes to a group |
+| `File Groups: Pin Group` | Pin a group to the top of the list |
+| `File Groups: Unpin Group` | Unpin a group back to normal sorting |
+| `File Groups: Set Badge Text` | Set a custom 1-2 character badge for file decorations |
+| `File Groups: Find Duplicate Files` | Find files that appear in multiple groups |
 | `File Groups: Expand All` | Expand all groups |
 | `File Groups: Collapse All` | Collapse all groups |
 | `File Groups: Clean Up Missing Files` | Remove files that no longer exist |
@@ -108,13 +138,19 @@ Groups are saved in two locations:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "groups": [
     {
       "id": "abc123",
       "name": "Authentication",
       "icon": "key",
       "color": "charts.blue",
+      "shortDescription": "Login endpoints",
+      "details": "Handles login/logout flows for the app.",
+      "createdBy": "alice",
+      "collapsed": false,
+      "pinned": true,
+      "badgeText": "🔐",
       "files": [
         { "path": "src/auth/login.ts", "name": "login.ts" },
         { "path": "src/auth/logout.ts", "name": "logout.ts" }

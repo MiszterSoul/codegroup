@@ -30,12 +30,18 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
             // Root level - return root groups (groups without parentId)
             const groups = this.storageService.getRootGroups();
             return groups
-                .sort((a, b) => a.order - b.order)
+                .sort((a, b) => {
+                    // Pinned groups first
+                    if (a.pinned && !b.pinned) return -1;
+                    if (!a.pinned && b.pinned) return 1;
+                    // Then by order
+                    return a.order - b.order;
+                })
                 .map(group => {
                     const subgroups = this.storageService.getSubgroups(group.id);
                     const hasSubgroups = subgroups.length > 0;
-                    const totalItems = this.storageService.getAllFilesInGroup(group.id).length;
-                    return new FileGroupTreeItem('group', group, undefined, hasSubgroups, subgroups.length, totalItems);
+                    const allFiles = this.storageService.getAllFilesInGroup(group.id);
+                    return new FileGroupTreeItem('group', group, undefined, hasSubgroups, subgroups.length, allFiles.length, allFiles);
                 });
         } else if (element.itemType === 'group' || element.itemType === 'subgroup') {
             // Group level - return subgroups first, then files
@@ -43,11 +49,16 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
 
             // Add subgroups
             const subgroups = this.storageService.getSubgroups(element.group.id);
-            subgroups.sort((a, b) => a.order - b.order).forEach(subgroup => {
+            subgroups.sort((a, b) => {
+                // Pinned subgroups first
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return a.order - b.order;
+            }).forEach(subgroup => {
                 const childSubgroups = this.storageService.getSubgroups(subgroup.id);
                 const hasChildren = childSubgroups.length > 0;
-                const totalItems = this.storageService.getAllFilesInGroup(subgroup.id).length;
-                items.push(new FileGroupTreeItem('subgroup', subgroup, undefined, hasChildren, childSubgroups.length, totalItems));
+                const allFiles = this.storageService.getAllFilesInGroup(subgroup.id);
+                items.push(new FileGroupTreeItem('subgroup', subgroup, undefined, hasChildren, childSubgroups.length, allFiles.length, allFiles));
             });
 
             // Add files

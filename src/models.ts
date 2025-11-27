@@ -1,4 +1,33 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import { NORMALIZED_CURRENT_USERNAME, normalizeUsername } from './userInfo';
+
+/**
+ * Calculate lines of code and last modified for a list of files
+ */
+function calculateFileStats(files: GroupFile[]): { totalLines: number; lastModified: Date | undefined } {
+    let totalLines = 0;
+    let lastModified: Date | undefined;
+
+    for (const file of files) {
+        if (!file.isDirectory) {
+            try {
+                const stat = fs.statSync(file.path);
+                const mtime = new Date(stat.mtime);
+                if (!lastModified || mtime > lastModified) {
+                    lastModified = mtime;
+                }
+
+                const content = fs.readFileSync(file.path, 'utf-8');
+                totalLines += content.split('\n').length;
+            } catch {
+                // File might not exist or be unreadable
+            }
+        }
+    }
+
+    return { totalLines, lastModified };
+}
 
 /**
  * Represents a file or folder within a group
@@ -24,6 +53,18 @@ export interface FileGroup {
     icon: string;
     /** Color id for the group (e.g., 'charts.red', 'charts.blue') */
     color: string;
+    /** Optional short description shown next to the name */
+    shortDescription?: string;
+    /** Longer free-form description shown in the tooltip */
+    details?: string;
+    /** Username of the creator */
+    createdBy?: string;
+    /** Should the group tree item be collapsed */
+    collapsed?: boolean;
+    /** Whether this group is pinned to the top */
+    pinned?: boolean;
+    /** Custom 1-2 character badge for file decorations (defaults to first letter of name) */
+    badgeText?: string;
     /** Files in this group */
     files: GroupFile[];
     /** Order index for sorting */
@@ -238,13 +279,16 @@ export class FileGroupTreeItem extends vscode.TreeItem {
         public readonly file?: GroupFile,
         public readonly hasChildren: boolean = false,
         public readonly subgroupCount: number = 0,
-        public readonly totalItemCount: number = 0
+        public readonly totalItemCount: number = 0,
+        public readonly allFiles: GroupFile[] = []
     ) {
         super(
             file ? file.name : group.name,
             file
                 ? vscode.TreeItemCollapsibleState.None
-                : vscode.TreeItemCollapsibleState.Expanded
+                : (group.collapsed
+                    ? vscode.TreeItemCollapsibleState.Collapsed
+                    : vscode.TreeItemCollapsibleState.Expanded)
         );
 
         // Set unique ID for state preservation during refresh
@@ -255,8 +299,14 @@ export class FileGroupTreeItem extends vscode.TreeItem {
         }
 
         // Set context value for menus
-        // subgroups get 'subgroup' so we can show "Move to Root" option
-        this.contextValue = itemType;
+        // Use pinned/unpinned suffix to show correct pin/unpin menu item
+        if (file) {
+            this.contextValue = 'file';
+        } else if (itemType === 'subgroup') {
+            this.contextValue = group.pinned ? 'subgroup_pinned' : 'subgroup_unpinned';
+        } else {
+            this.contextValue = group.pinned ? 'group_pinned' : 'group_unpinned';
+        }
 
         if (file) {
             // File or folder item
@@ -266,8 +316,6 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             if (file.isDirectory) {
                 // Folder item - show folder icon and reveal in explorer on click
                 this.iconPath = vscode.ThemeIcon.Folder;
-                // Add folder indicator to the description for better visibility
-                this.description = '📁';
                 this.command = {
                     command: 'revealInExplorer',
                     title: 'Reveal in Explorer',
@@ -288,26 +336,93 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             const folderCount = group.files.filter(f => f.isDirectory).length;
 
             // Build description parts
-            const parts: string[] = [];
+            const statsParts: string[] = [];
 
             if (subgroupCount > 0) {
-                parts.push(`${subgroupCount} ${subgroupCount === 1 ? 'subgroup' : 'subgroups'}`);
+                statsParts.push(`${subgroupCount} ${subgroupCount === 1 ? 'subgroup' : 'subgroups'}`);
             }
             if (fileCount > 0) {
-                parts.push(`${fileCount} ${fileCount === 1 ? 'file' : 'files'}`);
+                statsParts.push(`${fileCount} ${fileCount === 1 ? 'file' : 'files'}`);
             }
             if (folderCount > 0) {
-                parts.push(`${folderCount} ${folderCount === 1 ? 'folder' : 'folders'}`);
+                statsParts.push(`${folderCount} ${folderCount === 1 ? 'folder' : 'folders'}`);
             }
 
             // If showing total from subgroups too
             if (subgroupCount > 0 && totalItemCount > group.files.length) {
                 const totalFiles = totalItemCount;
-                parts.push(`(${totalFiles} total)`);
+                statsParts.push(`(${totalFiles} total)`);
             }
 
-            this.description = parts.length > 0 ? parts.join(', ') : 'empty';
-            this.tooltip = `${group.name} - ${this.description}`;
+            const statsDescription = statsParts.join(', ');
+            const descriptionParts: string[] = [];
+
+            const hasDetails = Boolean(group.details && group.details.trim().length > 0);
+
+            if (group.pinned) {
+                descriptionParts.push('📌');
+            }
+
+            if (hasDetails) {
+                descriptionParts.push('📝');
+            }
+
+            if (group.shortDescription) {
+                descriptionParts.push(group.shortDescription);
+            }
+            if (statsDescription) {
+                descriptionParts.push(statsDescription);
+            }
+
+            const createdByDifferent = group.createdBy
+                && normalizeUsername(group.createdBy) !== NORMALIZED_CURRENT_USERNAME;
+
+            if (createdByDifferent && group.createdBy) {
+                descriptionParts.push(`by ${group.createdBy}`);
+            }
+
+            this.description = descriptionParts.length > 0 ? descriptionParts.join(' • ') : 'empty';
+
+            // Calculate file stats (lines of code, last modified)
+            const filesToCheck = allFiles.length > 0 ? allFiles : group.files;
+            const { totalLines, lastModified } = calculateFileStats(filesToCheck);
+
+            const tooltipLines: string[] = [`**${group.name}**`];
+
+            if (group.shortDescription) {
+                tooltipLines.push('', `_${group.shortDescription}_`);
+            }
+
+            // Statistics section
+            tooltipLines.push('', '---', '**📊 Statistics**');
+            tooltipLines.push(`- Files: ${fileCount}`);
+            tooltipLines.push(`- Folders: ${folderCount}`);
+            if (subgroupCount > 0) {
+                tooltipLines.push(`- Subgroups: ${subgroupCount}`);
+                if (totalItemCount > group.files.length) {
+                    tooltipLines.push(`- Total items (incl. subgroups): ${totalItemCount}`);
+                }
+            }
+            tooltipLines.push(`- Lines of code: ${totalLines.toLocaleString()}`);
+            if (lastModified) {
+                tooltipLines.push(`- Last modified: ${lastModified.toLocaleString()}`);
+            }
+
+            if (group.details) {
+                tooltipLines.push('', '---', group.details);
+            }
+
+            if (group.createdBy) {
+                if (createdByDifferent) {
+                    tooltipLines.push('', `Created by **${group.createdBy}**`);
+                } else {
+                    tooltipLines.push('', `Created by **${group.createdBy}** (you)`);
+                }
+            }
+
+            const tooltipMarkdown = new vscode.MarkdownString(tooltipLines.join('\n'));
+            tooltipMarkdown.isTrusted = false;
+            this.tooltip = tooltipMarkdown;
 
             // Set icon with optional color
             if (group.color) {

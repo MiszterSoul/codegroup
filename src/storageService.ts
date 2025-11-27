@@ -49,7 +49,13 @@ export class StorageService {
         return groups.map((g, index) => ({
             ...g,
             order: g.order ?? index,
-            parentId: g.parentId ?? undefined
+            parentId: g.parentId ?? undefined,
+            shortDescription: g.shortDescription ?? undefined,
+            details: g.details ?? undefined,
+            createdBy: g.createdBy ?? undefined,
+            collapsed: g.collapsed ?? false,
+            pinned: g.pinned ?? false,
+            badgeText: g.badgeText ?? undefined
         }));
     }
 
@@ -94,6 +100,12 @@ export class StorageService {
                             });
                         }
                         group.files = updatedFiles;
+                        group.shortDescription = group.shortDescription ?? undefined;
+                        group.details = group.details ?? undefined;
+                        group.createdBy = group.createdBy ?? undefined;
+                        group.collapsed = group.collapsed ?? false;
+                        group.pinned = group.pinned ?? false;
+                        group.badgeText = group.badgeText ?? undefined;
                     }
                 }
 
@@ -138,7 +150,7 @@ export class StorageService {
         }));
 
         const config: FileGroupsConfig = {
-            version: 1,
+            version: 2,
             groups: portableGroups
         };
 

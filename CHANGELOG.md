@@ -1,3 +1,19 @@
+## [1.0.3] - 2025-11-27
+
+### Added
+- **Persistent expand/collapse state** – each group now remembers whether you left it open or closed, even across reloads.
+- **Group summaries & detailed notes** – new "Edit Summary" and "Edit Description" commands (also in the context menu) let you document why a group exists. Hover over a group to see all details including summary, description, contents, and creator.
+- **Creator attribution** – groups now store who created them and surface that info when it differs from the current user.
+- **Pin / Unpin groups** – pin frequently used groups so they always appear first (📌 icon). The context menu dynamically shows "Pin" or "Unpin" based on the group's current state.
+- **Custom badge text** – set a custom 1-2 character badge for file decorations instead of defaulting to the first letter.
+- **Activity bar badge** – the sidebar icon now shows the count of groups (or pinned groups when present).
+- **Find duplicate files** – quickly locate files that appear in multiple groups.
+- **Auto-cleanup prompt** – on startup, the extension checks for missing files and offers to clean them up.
+
+### Changed
+- Removed the extra folder emoji that was appended to folder items for a leaner tree view.
+- Groups that include extended notes now display a 📝 icon in their description so teammates know more info is available.
+
 # Change Log
 
 All notable changes to the "CodeGroup - File Organizer" extension will be documented in this file.
