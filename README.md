@@ -17,8 +17,7 @@
 
 ![CodeGroup Demo](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-main.png)
 
-<!-- TODO: Replace with a short GIF (8-12 sec) showing: create group → drag file → open all -->
-<!-- ![CodeGroup Demo GIF](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/demo.gif) -->
+![CodeGroup Demo GIF](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/demo.gif)
 
 ---
 
