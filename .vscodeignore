@@ -14,3 +14,5 @@ node_modules/**
 images/generate-icon.html
 images/icon.svg
 images/screenshot-guide.html
+images/screenshot-*.png
+images/demo.gif

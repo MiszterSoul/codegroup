@@ -140,6 +140,11 @@ None at this time. Please report issues on [GitHub](https://github.com/MiszterSo
 
 See [CHANGELOG.md](CHANGELOG.md) for full release history.
 
+### 1.0.4
+- Removed activity bar badge (cleaner UI)
+- Fixed sidebar title
+- Smaller package size
+
 ### 1.0.3
 - Persistent expand/collapse state
 - Group summaries & descriptions

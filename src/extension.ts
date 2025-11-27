@@ -11,26 +11,6 @@ let fileDecorationProvider: FileGroupDecorationProvider;
 let treeView: vscode.TreeView<FileGroupTreeItem>;
 
 /**
- * Update the tree view badge to show group count
- */
-function updateTreeViewBadge(): void {
-    const groups = storageService.getRootGroups();
-    const pinnedCount = groups.filter(g => g.pinned).length;
-
-    if (pinnedCount > 0) {
-        treeView.badge = {
-            value: pinnedCount,
-            tooltip: `${pinnedCount} pinned group(s)`
-        };
-    } else {
-        treeView.badge = {
-            value: groups.length,
-            tooltip: `${groups.length} group(s)`
-        };
-    }
-}
-
-/**
  * Check for missing files and prompt user to clean up
  */
 async function checkForMissingFiles(): Promise<void> {
@@ -115,9 +95,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Register all commands
     registerCommands(context);
-
-    // Update tree view badge
-    updateTreeViewBadge();
 
     // Check for missing files after a short delay
     setTimeout(() => {
@@ -522,7 +499,6 @@ function registerCommands(context: vscode.ExtensionContext) {
 
             await storageService.updateGroup(targetGroup.id, { pinned: true });
             fileGroupsProvider.refresh();
-            updateTreeViewBadge();
         })
     );
 
@@ -536,7 +512,6 @@ function registerCommands(context: vscode.ExtensionContext) {
 
             await storageService.updateGroup(targetGroup.id, { pinned: false });
             fileGroupsProvider.refresh();
-            updateTreeViewBadge();
         })
     );
 
