@@ -7,6 +7,8 @@
 
 > **Organize scattered files into named groups – like bookmarks for your codebase.**
 
+![CodeGroup Demo GIF](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/demo.gif)
+
 ---
 
 ## ⚡ What It Does
@@ -14,10 +16,6 @@
 - 📁 **Create custom file groups** – Group related files from any folder into named collections
 - 🎨 **Customize with colors & icons** – 120+ icons, hex colors, badges visible in tabs & explorer
 - 🖱️ **Drag & drop everything** – Files, folders, groups, subgroups – all draggable
-
-![CodeGroup Demo](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-main.png)
-
-![CodeGroup Demo GIF](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/demo.gif)
 
 ---
 
@@ -140,26 +138,9 @@ None at this time. Please report issues on [GitHub](https://github.com/MiszterSo
 
 See [CHANGELOG.md](CHANGELOG.md) for full release history.
 
-### 1.0.4
-- Removed activity bar badge (cleaner UI)
-- Fixed sidebar title
-- Smaller package size
-
-### 1.0.3
-- Persistent expand/collapse state
-- Group summaries & descriptions
-- Pin/Unpin groups
-- Custom badge text
-- Activity bar badge
-- Find duplicate files
-
-### 1.0.2
-- Folder support
-- 120+ icons (was 30)
-- Manual file reordering
-
-### 1.0.0
-- Initial release with groups, subgroups, icons, colors, drag & drop
+### 1.0.5
+- Full group path in hover tooltip (e.g., "CodeGroup: Bearer\Backend\")
+- README reorganized with demo GIF at top
 
 ---
 

@@ -5,6 +5,11 @@ All notable changes to **CodeGroup - File Organizer** will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2025-12-15
+### Changed
+- **improvement:** File hover tooltip now shows full group path (e.g., "CodeGroup: Bearer\Backend\") instead of just the group name
+- **improvement:** Reorganized README with demo GIF moved to the top for better visibility
+
 ## [1.0.4] - 2025-11-27
 
 ### Changed

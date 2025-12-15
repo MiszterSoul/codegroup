@@ -2,7 +2,7 @@
   "name": "codegroup-file-organizer",
   "displayName": "CodeGroup - File Organizer",
   "description": "Group related files from any folder into custom collections. Drag & drop, icons, colors, subgroups – like bookmarks for your codebase.",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "publisher": "PeterDev",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -133,6 +133,12 @@
         "command": "fileGroups.addFileFromTab",
         "title": "Add to File Group",
         "icon": "$(add)",
+        "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.goToGroup",
+        "title": "Go to Group",
+        "icon": "$(link)",
         "category": "File Groups"
       },
       {

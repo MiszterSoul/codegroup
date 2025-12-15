@@ -671,6 +671,59 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
+    // Go to group - shows which groups contain the file and reveals it in the tree
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.goToGroup', async (uri: vscode.Uri, uris?: vscode.Uri[]) => {
+            // Use single URI (not multi-select for this command)
+            const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
+
+            if (!fileUri || fileUri.scheme !== 'file') {
+                vscode.window.showWarningMessage('No file available');
+                return;
+            }
+
+            const filePath = fileUri.fsPath;
+            const groups = storageService.getGroups();
+
+            // Find all groups that contain this file
+            const groupsWithFile: FileGroup[] = [];
+            for (const group of groups) {
+                if (group.files.some(f => f.path === filePath)) {
+                    groupsWithFile.push(group);
+                }
+            }
+
+            if (groupsWithFile.length === 0) {
+                vscode.window.showInformationMessage('This file is not in any CodeGroup');
+                return;
+            }
+
+            // If only one group, reveal it directly
+            if (groupsWithFile.length === 1) {
+                const group = groupsWithFile[0];
+                const item = new FileGroupTreeItem(group.parentId ? 'subgroup' : 'group', group);
+                await treeView.reveal(item, { focus: true, select: true, expand: true });
+                return;
+            }
+
+            // If multiple groups, let user choose
+            const groupItems = groupsWithFile.map(g => ({
+                label: `$(${g.icon || 'folder'}) ${g.name}`,
+                description: g.parentId ? '(subgroup)' : '',
+                group: g
+            }));
+
+            const selected = await vscode.window.showQuickPick(groupItems, {
+                placeHolder: `This file is in ${groupsWithFile.length} groups. Select one to reveal:`
+            });
+
+            if (selected) {
+                const item = new FileGroupTreeItem(selected.group.parentId ? 'subgroup' : 'group', selected.group);
+                await treeView.reveal(item, { focus: true, select: true, expand: true });
+            }
+        })
+    );
+
     // Remove file from group (supports multi-select)
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.removeFile', async (item: FileGroupTreeItem, selectedItems?: FileGroupTreeItem[]) => {

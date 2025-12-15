@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { StorageService } from './storageService';
-import { isHexColor, getThemeColorForHex } from './models';
+import { isHexColor, getThemeColorForHex, FileGroup } from './models';
 
 /**
  * Provides file decorations (colors) for files that belong to groups.
@@ -42,14 +42,34 @@ export class FileGroupDecorationProvider implements vscode.FileDecorationProvide
                     ? getThemeColorForHex(group.color)
                     : group.color;
 
+                // Build full path from root to this group
+                const fullPath = this.buildGroupPath(group, groups);
+
                 return new vscode.FileDecoration(
                     badge,
-                    `File Group: ${group.name}`,
+                    `CodeGroup: ${fullPath}`,
                     new vscode.ThemeColor(themeColorId)
                 );
             }
         }
 
         return undefined;
+    }
+
+    /**
+     * Build the full path from root to the given group (e.g., "Bearer\Backend\")
+     */
+    private buildGroupPath(group: FileGroup, allGroups: FileGroup[]): string {
+        const path: string[] = [];
+        let current: FileGroup | undefined = group;
+
+        // Walk up the parent chain
+        while (current) {
+            path.unshift(current.name);
+            current = current.parentId ? allGroups.find(g => g.id === current!.parentId) : undefined;
+        }
+
+        // Join with backslash and add trailing backslash
+        return path.join('\\') + '\\';
     }
 }
