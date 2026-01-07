@@ -138,9 +138,9 @@ None at this time. Please report issues on [GitHub](https://github.com/MiszterSo
 
 See [CHANGELOG.md](CHANGELOG.md) for full release history.
 
-### 1.0.5
-- Full group path in hover tooltip (e.g., "CodeGroup: Bearer\Backend\")
-- README reorganized with demo GIF at top
+### 1.0.7
+- Removed test infrastructure to reduce package size
+- Optimized icon size from 14.6kb to 5.5kb
 
 ---
 

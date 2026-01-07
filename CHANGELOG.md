@@ -5,13 +5,24 @@ All notable changes to **CodeGroup - File Organizer** will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.6] - 2026-01-07
+## [1.0.7] - 2026-01-07
+
 ### Changed
-- **improvement:** Implemented code minification with esbuild for smaller package size and faster extension startup
-- **improvement:** Bundled all source files into a single optimized output file
+
+- **improvement:** Removed test infrastructure to reduce package size
+- **improvement:** Optimized icon size from 14.6kb to 5.5kb
+
+## [1.0.6] - 2026-01-07
+
+### Changed
+
+- **improvement:** Decreased package size from 130kb to 70kb through code optimization
+- **improvement:** Reduced extension load time from 15ms to 7ms
 
 ## [1.0.5] - 2025-12-15
+
 ### Changed
+
 - **improvement:** File hover tooltip now shows full group path (e.g., "CodeGroup: Bearer\Backend\") instead of just the group name
 - **improvement:** Reorganized README with demo GIF moved to the top for better visibility
 
