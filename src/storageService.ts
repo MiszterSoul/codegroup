@@ -325,10 +325,10 @@ export class StorageService {
     async reorderFilesInGroup(groupId: string, draggedFilePath: string, targetFilePath: string | null): Promise<void> {
         const groups = this.getGroups();
         const group = groups.find(g => g.id === groupId);
-        if (!group) return;
+        if (!group) { return; }
 
         const draggedIndex = group.files.findIndex(f => f.path === draggedFilePath);
-        if (draggedIndex === -1) return;
+        if (draggedIndex === -1) { return; }
 
         const [draggedFile] = group.files.splice(draggedIndex, 1);
 

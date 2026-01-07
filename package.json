@@ -2,7 +2,7 @@
   "name": "codegroup-file-organizer",
   "displayName": "CodeGroup - File Organizer",
   "description": "Group related files from any folder into custom collections. Drag & drop, icons, colors, subgroups – like bookmarks for your codebase.",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "publisher": "PeterDev",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -428,14 +428,18 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "check-types": "tsc --noEmit",
+    "pretest": "npm run compile",
     "lint": "eslint src",
     "test": "vscode-test",
-    "package": "vsce package",
-    "publish": "vsce publish"
+    "vsce:package": "vsce package",
+    "vsce:publish": "vsce publish"
   },
   "devDependencies": {
     "@types/vscode": "^1.74.0",
@@ -445,6 +449,8 @@
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
     "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.24.2",
+    "npm-run-all": "^4.1.5"
   }
 }

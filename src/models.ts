@@ -252,14 +252,14 @@ export function getThemeColorForHex(hexColor: string): string {
     const b = parseInt(hex.slice(5, 7), 16);
 
     // Simple hue-based mapping
-    if (r > 200 && g < 100 && b < 100) return 'charts.red';
-    if (r > 200 && g > 100 && g < 200 && b < 100) return 'charts.orange';
-    if (r > 200 && g > 200 && b < 100) return 'charts.yellow';
-    if (r < 100 && g > 150 && b < 100) return 'charts.green';
-    if (r < 100 && g < 150 && b > 200) return 'charts.blue';
-    if (r > 150 && g < 100 && b > 150) return 'charts.purple';
-    if (r < 150 && g > 200 && b > 200) return 'terminal.ansiCyan';
-    if (r > 200 && g < 150 && b > 200) return 'terminal.ansiMagenta';
+    if (r > 200 && g < 100 && b < 100) { return 'charts.red'; }
+    if (r > 200 && g > 100 && g < 200 && b < 100) { return 'charts.orange'; }
+    if (r > 200 && g > 200 && b < 100) { return 'charts.yellow'; }
+    if (r < 100 && g > 150 && b < 100) { return 'charts.green'; }
+    if (r < 100 && g < 150 && b > 200) { return 'charts.blue'; }
+    if (r > 150 && g < 100 && b > 150) { return 'charts.purple'; }
+    if (r < 150 && g > 200 && b > 200) { return 'terminal.ansiCyan'; }
+    if (r > 200 && g < 150 && b > 200) { return 'terminal.ansiMagenta'; }
 
     return 'charts.blue'; // Default fallback
 }

@@ -32,8 +32,8 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
             return groups
                 .sort((a, b) => {
                     // Pinned groups first
-                    if (a.pinned && !b.pinned) return -1;
-                    if (!a.pinned && b.pinned) return 1;
+                    if (a.pinned && !b.pinned) { return -1; }
+                    if (!a.pinned && b.pinned) { return 1; }
                     // Then by order
                     return a.order - b.order;
                 })
@@ -51,8 +51,8 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
             const subgroups = this.storageService.getSubgroups(element.group.id);
             subgroups.sort((a, b) => {
                 // Pinned subgroups first
-                if (a.pinned && !b.pinned) return -1;
-                if (!a.pinned && b.pinned) return 1;
+                if (a.pinned && !b.pinned) { return -1; }
+                if (!a.pinned && b.pinned) { return 1; }
                 return a.order - b.order;
             }).forEach(subgroup => {
                 const childSubgroups = this.storageService.getSubgroups(subgroup.id);
