@@ -7,6 +7,9 @@ vsc-extension-quickstart.md
 **/tsconfig.json
 **/eslint.config.mjs
 esbuild.js
+build.js
+bun.lock
+bun.lockb
 **/*.map
 **/*.ts
 **/.vscode-test.*

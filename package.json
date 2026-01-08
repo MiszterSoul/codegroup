@@ -2,7 +2,7 @@
   "name": "codegroup-file-organizer",
   "displayName": "CodeGroup - File Organizer",
   "description": "Group related files from any folder into custom collections. Drag & drop, icons, colors, subgroups – like bookmarks for your codebase.",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "publisher": "PeterDev",
   "license": "MIT",
   "icon": "icon.png",
@@ -212,6 +212,12 @@
         "title": "Find Duplicate Files",
         "icon": "$(copy)",
         "category": "File Groups"
+      },
+      {
+        "command": "fileGroups.sortFiles",
+        "title": "Sort Files...",
+        "icon": "$(sort-precedence)",
+        "category": "File Groups"
       }
     ],
     "menus": {
@@ -339,8 +345,11 @@
           "command": "fileGroups.openAll",
           "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "1_actions@1"
-        },
-        {
+        },        {
+          "command": "fileGroups.sortFiles",
+          "when": "view == fileGroupsView && viewItem =~ /^(group|subgroup)/",
+          "group": "2_actions"
+        },        {
           "command": "fileGroups.closeAll",
           "when": "view == fileGroupsView && viewItem =~ /^subgroup/",
           "group": "1_actions@2"
@@ -429,11 +438,11 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "compile": "npm run check-types && npm run lint && bun run build.js",
     "watch": "npm-run-all -p watch:*",
-    "watch:esbuild": "node esbuild.js --watch",
+    "watch:esbuild": "bun run build.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "package": "npm run check-types && npm run lint && bun run build.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "vsce:package": "vsce package",
@@ -445,7 +454,6 @@
     "typescript-eslint": "^8.46.3",
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
-    "esbuild": "^0.24.2",
     "npm-run-all": "^4.1.5"
   }
 }

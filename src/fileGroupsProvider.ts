@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { FileGroup, FileGroupTreeItem, GroupFile } from './models';
 import { StorageService } from './storageService';
 
@@ -19,6 +21,60 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
      */
     refresh(): void {
         this._onDidChangeTreeData.fire();
+    }
+
+    /**
+     * Sort files based on the sort order
+     */
+    private sortFiles(files: GroupFile[], sortOrder?: string): GroupFile[] {
+        if (!sortOrder || sortOrder === 'manual') {
+            return files;
+        }
+
+        const sorted = [...files];
+
+        switch (sortOrder) {
+            case 'name-asc':
+                sorted.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            case 'name-desc':
+                sorted.sort((a, b) => b.name.localeCompare(a.name));
+                break;
+            case 'date-asc':
+                sorted.sort((a, b) => {
+                    try {
+                        const aStat = fs.statSync(a.path);
+                        const bStat = fs.statSync(b.path);
+                        return aStat.mtime.getTime() - bStat.mtime.getTime();
+                    } catch {
+                        return 0;
+                    }
+                });
+                break;
+            case 'date-desc':
+                sorted.sort((a, b) => {
+                    try {
+                        const aStat = fs.statSync(a.path);
+                        const bStat = fs.statSync(b.path);
+                        return bStat.mtime.getTime() - aStat.mtime.getTime();
+                    } catch {
+                        return 0;
+                    }
+                });
+                break;
+            case 'type':
+                sorted.sort((a, b) => {
+                    const aExt = path.extname(a.name).toLowerCase();
+                    const bExt = path.extname(b.name).toLowerCase();
+                    if (aExt === bExt) {
+                        return a.name.localeCompare(b.name);
+                    }
+                    return aExt.localeCompare(bExt);
+                });
+                break;
+        }
+
+        return sorted;
     }
 
     getTreeItem(element: FileGroupTreeItem): vscode.TreeItem {
@@ -62,7 +118,8 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
             });
 
             // Add files
-            element.group.files.forEach(file => {
+            const sortedFiles = this.sortFiles(element.group.files, element.group.sortOrder);
+            sortedFiles.forEach(file => {
                 items.push(new FileGroupTreeItem('file', element.group, file));
             });
 

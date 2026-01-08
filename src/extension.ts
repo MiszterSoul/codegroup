@@ -842,6 +842,36 @@ function registerCommands(context: vscode.ExtensionContext) {
             }
         })
     );
+
+    // Sort files in a group
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.sortFiles', async (item?: FileGroupTreeItem) => {
+            const group = await pickGroupForCommand('Select group to sort files', item);
+            if (!group) { return; }
+
+            const sortOptions = [
+                { label: '$(sort-precedence) Name (A → Z)', sortOrder: 'name-asc' },
+                { label: '$(sort-precedence) Name (Z → A)', sortOrder: 'name-desc' },
+                { label: '$(history) Date Modified (Oldest First)', sortOrder: 'date-asc' },
+                { label: '$(history) Date Modified (Newest First)', sortOrder: 'date-desc' },
+                { label: '$(file-code) File Type (Extension)', sortOrder: 'type' },
+                { label: '$(gripper) Manual (Drag & Drop)', sortOrder: 'manual' }
+            ];
+
+            const currentSort = group.sortOrder || 'manual';
+            const currentOption = sortOptions.find(opt => opt.sortOrder === currentSort);
+
+            const selection = await vscode.window.showQuickPick(sortOptions, {
+                placeHolder: `Current: ${currentOption?.label.replace(/\$\([^)]+\)\s*/, '') || 'Manual'}`,
+                matchOnDescription: true
+            });
+
+            if (selection) {
+                await storageService.updateGroup(group.id, { sortOrder: selection.sortOrder });
+                fileGroupsProvider.refresh();
+            }
+        })
+    );
 }
 
 // This method is called when your extension is deactivated

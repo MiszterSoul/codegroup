@@ -67,6 +67,8 @@ export interface FileGroup {
     badgeText?: string;
     /** Files in this group */
     files: GroupFile[];
+    /** Sort order for files: 'name-asc', 'name-desc', 'date-asc', 'date-desc', 'type', or 'manual' (default) */
+    sortOrder?: string;
     /** Order index for sorting */
     order: number;
     /** Parent group ID (null/undefined for root groups) */
