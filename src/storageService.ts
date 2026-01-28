@@ -3,6 +3,8 @@ import { FileGroup, GroupFile, FileGroupsConfig } from './models';
 
 const STORAGE_KEY = 'fileGroups';
 const CONFIG_FILE_NAME = '.vscode/file-groups.json';
+const GLOBAL_STORAGE_KEY = 'globalFileGroups';
+const GLOBAL_CONFIG_FILE_NAME = 'file-groups-global.json';
 
 /**
  * Service for persisting file groups to workspace state and file
@@ -14,6 +16,7 @@ export class StorageService {
     constructor(private context: vscode.ExtensionContext) {
         // Watch for file changes if workspace is open
         this.setupFileWatcher();
+        this.setupGlobalFileWatcher();
     }
 
     private setupFileWatcher(): void {
@@ -29,6 +32,35 @@ export class StorageService {
     }
 
     /**
+     * Setup watcher for global groups file in appdata
+     */
+    private setupGlobalFileWatcher(): void {
+        const globalConfigUri = this.getGlobalConfigFileUri();
+        if (globalConfigUri) {
+            const pattern = new vscode.RelativePattern(
+                vscode.Uri.joinPath(globalConfigUri, '..'),
+                GLOBAL_CONFIG_FILE_NAME
+            );
+            const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+
+            watcher.onDidChange(() => this._onDidChange.fire());
+            watcher.onDidCreate(() => this._onDidChange.fire());
+            watcher.onDidDelete(() => this._onDidChange.fire());
+        }
+    }
+
+    /**
+     * Get the global config file URI (in extension global storage)
+     */
+    private getGlobalConfigFileUri(): vscode.Uri | undefined {
+        try {
+            return vscode.Uri.joinPath(this.context.globalStorageUri, GLOBAL_CONFIG_FILE_NAME);
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
      * Get the config file URI
      */
     private getConfigFileUri(): vscode.Uri | undefined {
@@ -40,12 +72,123 @@ export class StorageService {
     }
 
     /**
+     * Check if global groups should be hidden in current workspace
+     */
+    private shouldHideGlobalGroups(): boolean {
+        const configUri = this.getConfigFileUri();
+        if (!configUri) {
+            return false;
+        }
+
+        try {
+            const config = this.context.workspaceState.get<FileGroupsConfig>('fileGroupsConfig');
+            return config?.hideGlobalGroups ?? false;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Set whether to hide global groups in current workspace
+     */
+    async setHideGlobalGroups(hide: boolean): Promise<void> {
+        const configUri = this.getConfigFileUri();
+        if (!configUri) {
+            return;
+        }
+
+        // Update local config
+        const config = this.context.workspaceState.get<FileGroupsConfig>('fileGroupsConfig') || {
+            version: 2,
+            groups: []
+        };
+        config.hideGlobalGroups = hide;
+        await this.context.workspaceState.update('fileGroupsConfig', config);
+
+        // Save to file
+        await this.saveConfigToFile(config);
+        this._onDidChange.fire();
+    }
+
+    /**
+     * Save config to file
+     */
+    private async saveConfigToFile(config: Partial<FileGroupsConfig>): Promise<void> {
+        const configUri = this.getConfigFileUri();
+        if (!configUri) {
+            return;
+        }
+
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!workspaceRoot) {
+            return;
+        }
+
+        try {
+            // Load existing config if any
+            let existingConfig: FileGroupsConfig = { version: 2, groups: [] };
+            try {
+                const content = await vscode.workspace.fs.readFile(configUri);
+                existingConfig = JSON.parse(content.toString());
+            } catch {
+                // File doesn't exist yet
+            }
+
+            // Merge configs
+            const mergedConfig = {
+                ...existingConfig,
+                ...config
+            };
+
+            // Ensure .vscode directory exists
+            const vscodeDirUri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders![0].uri, '.vscode');
+            try {
+                await vscode.workspace.fs.createDirectory(vscodeDirUri);
+            } catch {
+                // Directory might already exist
+            }
+
+            const contentStr = Buffer.from(JSON.stringify(mergedConfig, null, 2), 'utf-8');
+            await vscode.workspace.fs.writeFile(configUri, contentStr);
+        } catch (error) {
+            console.error('Failed to save config:', error);
+        }
+    }
+
+    /**
      * Load groups from file if available, otherwise from workspace state
      */
     getGroups(): FileGroup[] {
-        // Try to load from workspace state (includes file-loaded data)
-        const groups = this.context.workspaceState.get<FileGroup[]>(STORAGE_KEY, []);
-        // Ensure order and parentId properties exist for migration
+        // Get local groups
+        const localGroups = this.context.workspaceState.get<FileGroup[]>(STORAGE_KEY, []);
+        const normalizedLocal = localGroups.map((g, index) => ({
+            ...g,
+            order: g.order ?? index,
+            parentId: g.parentId ?? undefined,
+            shortDescription: g.shortDescription ?? undefined,
+            details: g.details ?? undefined,
+            createdBy: g.createdBy ?? undefined,
+            collapsed: g.collapsed ?? false,
+            pinned: g.pinned ?? false,
+            badgeText: g.badgeText ?? undefined,
+            isGlobal: false
+        }));
+
+        // Get global groups if not hidden
+        if (!this.shouldHideGlobalGroups()) {
+            const globalGroups = this.getGlobalGroups();
+            // Combine: global groups first, then local groups
+            return [...globalGroups, ...normalizedLocal];
+        }
+
+        return normalizedLocal;
+    }
+
+    /**
+     * Get global groups
+     */
+    getGlobalGroups(): FileGroup[] {
+        const groups = this.context.globalState.get<FileGroup[]>(GLOBAL_STORAGE_KEY, []);
         return groups.map((g, index) => ({
             ...g,
             order: g.order ?? index,
@@ -55,7 +198,8 @@ export class StorageService {
             createdBy: g.createdBy ?? undefined,
             collapsed: g.collapsed ?? false,
             pinned: g.pinned ?? false,
-            badgeText: g.badgeText ?? undefined
+            badgeText: g.badgeText ?? undefined,
+            isGlobal: true
         }));
     }
 
@@ -110,6 +254,51 @@ export class StorageService {
                 }
 
                 await this.context.workspaceState.update(STORAGE_KEY, config.groups);
+
+                // Also load hideGlobalGroups setting
+                if (config.hideGlobalGroups !== undefined) {
+                    const configWithSetting: FileGroupsConfig = {
+                        version: config.version,
+                        groups: config.groups,
+                        hideGlobalGroups: config.hideGlobalGroups
+                    };
+                    await this.context.workspaceState.update('fileGroupsConfig', configWithSetting);
+                }
+
+                return true;
+            }
+        } catch {
+            // File doesn't exist or is invalid
+        }
+        return false;
+    }
+
+    /**
+     * Load global groups from file
+     */
+    async loadFromGlobalFile(): Promise<boolean> {
+        const configUri = this.getGlobalConfigFileUri();
+        if (!configUri) {
+            return false;
+        }
+
+        try {
+            const content = await vscode.workspace.fs.readFile(configUri);
+            const config: FileGroupsConfig = JSON.parse(content.toString());
+
+            if (config.version && config.groups) {
+                // Global groups store absolute paths, no conversion needed
+                for (const group of config.groups) {
+                    group.shortDescription = group.shortDescription ?? undefined;
+                    group.details = group.details ?? undefined;
+                    group.createdBy = group.createdBy ?? undefined;
+                    group.collapsed = group.collapsed ?? false;
+                    group.pinned = group.pinned ?? false;
+                    group.badgeText = group.badgeText ?? undefined;
+                    group.isGlobal = true;
+                }
+
+                await this.context.globalState.update(GLOBAL_STORAGE_KEY, config.groups);
                 return true;
             }
         } catch {
@@ -122,8 +311,28 @@ export class StorageService {
      * Save all groups to workspace storage and file
      */
     async saveGroups(groups: FileGroup[]): Promise<void> {
-        await this.context.workspaceState.update(STORAGE_KEY, groups);
-        await this.saveToFile(groups);
+        // Separate global and local groups
+        const localGroups = groups.filter(g => !g.isGlobal);
+        const globalGroups = groups.filter(g => g.isGlobal);
+
+        // Save local groups
+        await this.context.workspaceState.update(STORAGE_KEY, localGroups);
+        await this.saveToFile(localGroups);
+
+        // Save global groups if any changed
+        if (globalGroups.length > 0 || this.getGlobalGroups().length > 0) {
+            await this.saveGlobalGroups(globalGroups);
+        }
+    }
+
+    /**
+     * Save global groups
+     */
+    async saveGlobalGroups(groups: FileGroup[]): Promise<void> {
+        // Mark all as global
+        const globalGroups = groups.map(g => ({ ...g, isGlobal: true }));
+        await this.context.globalState.update(GLOBAL_STORAGE_KEY, globalGroups);
+        await this.saveToGlobalFile(globalGroups);
     }
 
     /**
@@ -167,6 +376,37 @@ export class StorageService {
             await vscode.workspace.fs.writeFile(configUri, content);
         } catch (error) {
             console.error('Failed to save file-groups.json:', error);
+        }
+    }
+
+    /**
+     * Save global groups to config file
+     */
+    private async saveToGlobalFile(groups: FileGroup[]): Promise<void> {
+        const configUri = this.getGlobalConfigFileUri();
+        if (!configUri) {
+            return;
+        }
+
+        // Global groups keep absolute paths
+        const config: FileGroupsConfig = {
+            version: 2,
+            groups: groups
+        };
+
+        try {
+            // Ensure global storage directory exists
+            const globalStorageDir = this.context.globalStorageUri;
+            try {
+                await vscode.workspace.fs.createDirectory(globalStorageDir);
+            } catch {
+                // Directory might already exist
+            }
+
+            const content = Buffer.from(JSON.stringify(config, null, 2), 'utf-8');
+            await vscode.workspace.fs.writeFile(configUri, content);
+        } catch (error) {
+            console.error('Failed to save global file-groups.json:', error);
         }
     }
 
@@ -216,7 +456,7 @@ export class StorageService {
     }
 
     /**
-     * Delete a group and all its subgroups
+     * Delete a group and all its child groups
      */
     async deleteGroup(groupId: string): Promise<void> {
         const groups = this.getGroups();
@@ -241,7 +481,21 @@ export class StorageService {
     }
 
     /**
-     * Get all files in a group and its subgroups recursively
+     * Recursively update a group and all its children
+     */
+    async updateGroupRecursive(groupId: string, updates: Partial<FileGroup>): Promise<void> {
+        const groups = this.getGroups();
+        const idsToUpdate = this.getGroupAndChildIds(groupId, groups);
+
+        const updatedGroups = groups.map(g =>
+            idsToUpdate.has(g.id) ? { ...g, ...updates } : g
+        );
+
+        await this.saveGroups(updatedGroups);
+    }
+
+    /**
+     * Get all files in a group and its child groups recursively
      */
     getAllFilesInGroup(groupId: string): GroupFile[] {
         const groups = this.getGroups();
@@ -256,7 +510,7 @@ export class StorageService {
     }
 
     /**
-     * Get subgroups of a group
+     * Get child groups of a group
      */
     getSubgroups(parentId: string): FileGroup[] {
         return this.getGroups().filter(g => g.parentId === parentId);

@@ -1,18 +1,15 @@
 {
-  "version": 1,
+  "version": 2,
   "groups": [
     {
       "id": "mien8778d08nhvn29bm",
       "name": "MainGroup",
       "icon": "folder",
       "color": "",
-      "files": [
-        {
-          "path": "src/test",
-          "name": "test"
-        }
-      ],
-      "order": 0
+      "files": [],
+      "order": 0,
+      "collapsed": true,
+      "pinned": false
     }
   ]
 }

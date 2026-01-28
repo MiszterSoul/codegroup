@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD022 MD032 MD060 -->
 # CodeGroup - File Organizer
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/PeterDev.codegroup-file-organizer?style=flat-square&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
@@ -67,6 +68,16 @@
 - Relative paths for cross-machine compatibility
 - Creator attribution – see who set up each group
 
+### 🌐 Global Groups
+- **Create global groups** available across all your projects
+- Stored in AppData (global storage), not tied to any workspace
+- Perfect for common utilities, documentation, or frequently accessed files
+- **Toggle visibility** per project – hide global groups in specific workspaces
+- Visual indicator (🌐) to distinguish global from local groups
+- Moving any group (drag or context command) relocates the entire tree to the target storage so files and child groups never split between configs.
+- Global groups now behave exactly like local groups – same context menus, drag operations, open/close, and decoration behavior while keeping path handling (absolute vs. relative) consistent.
+- Right-click an empty area in the File Groups view to create a new root group without selecting an existing node.
+
 ---
 
 ## 📋 Commands
@@ -85,6 +96,8 @@ All commands available via Command Palette (`Ctrl+Shift+P`):
 | `File Groups: Find Duplicate Files` | Find files in multiple groups |
 | `File Groups: Clean Up Missing Files` | Remove deleted files |
 | `File Groups: Expand/Collapse All` | Navigation helpers |
+| `File Groups: Create Global Group` | Create a global group (available in all projects) |
+| `File Groups: Toggle Hide Global Groups` | Show/hide global groups in current project |
 
 ---
 

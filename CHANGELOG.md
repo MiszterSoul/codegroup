@@ -5,6 +5,26 @@ All notable changes to **CodeGroup - File Organizer** will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<!-- markdownlint-disable MD022 MD024 MD032 -->
+
+## [1.1.0] - 2026-01-28
+
+### Added
+
+- **feat:** Global groups – Create groups that are available across all projects, stored in global storage (AppData).
+- **feat:** Command to create global groups accessible from all workspaces.
+- **feat:** Toggle to hide/show global groups per project via local settings.
+- **feat:** Visual indicators (🌐) to distinguish global groups from local groups.
+- **feat:** Moving any group (drag or command) relocates the entire nested tree between the local and global configs so every child moves together.
+- **feat:** Right-clicking the empty area in the File Groups view now offers a quick “Create Group” action without selecting an existing group.
+
+### Changed
+
+- **improvement:** Global groups behave exactly like local groups (same context menus, drag/drop, open/close support) while keeping path handling (relative local vs absolute global) clean.
+- **improvement:** Dragging any group onto the Global Groups section or moving it via commands now detaches it from mixed storage and re-saves the complete JSON subtree.
+- **improvement:** View now appears at the bottom of the Explorer sidebar instead of a separate activity bar icon.
+- **improvement:** View starts collapsed by default on first use for a cleaner workspace.
+
 ## [1.0.8] - 2026-01-08
 
 ### Added

@@ -83,9 +83,14 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
 
     getChildren(element?: FileGroupTreeItem): FileGroupTreeItem[] {
         if (!element) {
-            // Root level - return root groups (groups without parentId)
-            const groups = this.storageService.getRootGroups();
-            return groups
+            // Root level - show local groups and global groups section
+            const items: FileGroupTreeItem[] = [];
+
+            // Get local root groups (not global, no parent)
+            const localGroups = this.storageService.getRootGroups().filter(g => !g.isGlobal);
+
+            // Add local groups
+            items.push(...localGroups
                 .sort((a, b) => {
                     // Pinned groups first
                     if (a.pinned && !b.pinned) { return -1; }
@@ -98,29 +103,53 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
                     const hasSubgroups = subgroups.length > 0;
                     const allFiles = this.storageService.getAllFilesInGroup(group.id);
                     return new FileGroupTreeItem('group', group, undefined, hasSubgroups, subgroups.length, allFiles.length, allFiles);
+                })
+            );
+
+            // Add Global Groups section if there are any global groups
+            const globalGroups = this.storageService.getGlobalGroups().filter(g => !g.parentId);
+            if (globalGroups.length > 0) {
+                items.push(new FileGroupTreeItem('section', null, undefined, true, 0, globalGroups.length, []));
+            }
+
+            return items;
+        } else if (element.itemType === 'section') {
+            // Global Groups section - return global root groups
+            const globalGroups = this.storageService.getGlobalGroups().filter(g => !g.parentId);
+            return globalGroups
+                .sort((a, b) => {
+                    if (a.pinned && !b.pinned) { return -1; }
+                    if (!a.pinned && b.pinned) { return 1; }
+                    return a.order - b.order;
+                })
+                .map(group => {
+                    const subgroups = this.storageService.getSubgroups(group.id);
+                    const hasSubgroups = subgroups.length > 0;
+                    const allFiles = this.storageService.getAllFilesInGroup(group.id);
+                    return new FileGroupTreeItem('group', group, undefined, hasSubgroups, subgroups.length, allFiles.length, allFiles);
                 });
-        } else if (element.itemType === 'group' || element.itemType === 'subgroup') {
-            // Group level - return subgroups first, then files
+        } else if (element.itemType === 'group' && element.group) {
+            // Group level - return child groups first, then files
             const items: FileGroupTreeItem[] = [];
 
-            // Add subgroups
-            const subgroups = this.storageService.getSubgroups(element.group.id);
-            subgroups.sort((a, b) => {
-                // Pinned subgroups first
+            // Add child groups
+            const childGroups = this.storageService.getSubgroups(element.group.id);
+            childGroups.sort((a, b) => {
+                // Pinned groups first
                 if (a.pinned && !b.pinned) { return -1; }
                 if (!a.pinned && b.pinned) { return 1; }
                 return a.order - b.order;
-            }).forEach(subgroup => {
-                const childSubgroups = this.storageService.getSubgroups(subgroup.id);
+            }).forEach(childGroup => {
+                const childSubgroups = this.storageService.getSubgroups(childGroup.id);
                 const hasChildren = childSubgroups.length > 0;
-                const allFiles = this.storageService.getAllFilesInGroup(subgroup.id);
-                items.push(new FileGroupTreeItem('subgroup', subgroup, undefined, hasChildren, childSubgroups.length, allFiles.length, allFiles));
+                const allFiles = this.storageService.getAllFilesInGroup(childGroup.id);
+                items.push(new FileGroupTreeItem('group', childGroup, undefined, hasChildren, childSubgroups.length, allFiles.length, allFiles));
             });
 
             // Add files
             const sortedFiles = this.sortFiles(element.group.files, element.group.sortOrder);
             sortedFiles.forEach(file => {
-                items.push(new FileGroupTreeItem('file', element.group, file));
+                items.push(new FileGroupTreeItem('file', element.group!, file));
             });
 
             return items;
@@ -129,13 +158,23 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
     }
 
     getParent(element: FileGroupTreeItem): FileGroupTreeItem | undefined {
-        if (element.itemType === 'file') {
+        if (element.itemType === 'section') {
+            return undefined;
+        }
+        if (element.itemType === 'file' && element.group) {
             return new FileGroupTreeItem('group', element.group);
         }
-        if ((element.itemType === 'group' || element.itemType === 'subgroup') && element.group.parentId) {
-            const parent = this.storageService.getGroup(element.group.parentId);
-            if (parent) {
-                return new FileGroupTreeItem(parent.parentId ? 'subgroup' : 'group', parent);
+        if (element.itemType === 'group' && element.group) {
+            // If this is a global group at root level, parent is the section
+            if (element.group.isGlobal && !element.group.parentId) {
+                return new FileGroupTreeItem('section', null, undefined, true, 0, 0, []);
+            }
+            // Otherwise check for parent group
+            if (element.group.parentId) {
+                const parent = this.storageService.getGroup(element.group.parentId);
+                if (parent) {
+                    return new FileGroupTreeItem('group', parent);
+                }
             }
         }
         return undefined;
@@ -207,12 +246,16 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         // Determine target group and file (works for both group and subgroup)
         let targetGroup: FileGroup | undefined;
         let targetFile: GroupFile | undefined;
+        let isGlobalSection = false;
 
         if (target) {
-            if (target.itemType === 'group' || target.itemType === 'subgroup') {
-                targetGroup = target.group;
+            if (target.itemType === 'section') {
+                // Dropping on Global Groups section - files/groups should become global
+                isGlobalSection = true;
+            } else if (target.itemType === 'group') {
+                targetGroup = target.group!;
             } else if (target.itemType === 'file') {
-                targetGroup = target.group;
+                targetGroup = target.group!;
                 targetFile = target.file;
             }
         }
@@ -222,9 +265,24 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         if (internalData) {
             const items = internalData.value as FileGroupTreeItem[];
 
-            // Check if we're dragging groups/subgroups
-            const draggedGroups = items.filter(item => item.itemType === 'group' || item.itemType === 'subgroup');
+            // Check if we're dragging groups
+            const draggedGroups = items.filter(item => item.itemType === 'group');
             if (draggedGroups.length > 0) {
+                // If dropped on global section, move to global
+                if (isGlobalSection) {
+                    for (const draggedItem of draggedGroups) {
+                        // Recursively update the group and all its children
+                        await this.storageService.updateGroupRecursive(draggedItem.group!.id, {
+                            isGlobal: true
+                        });
+                        // Set the root group to have no parent
+                        await this.storageService.updateGroup(draggedItem.group!.id, {
+                            parentId: undefined
+                        });
+                    }
+                    this.provider.refresh();
+                    return;
+                }
                 // If dropped on empty space (no target), move to root level
                 // If dropped on a group/subgroup, make it a child
                 await this.handleGroupDrop(draggedGroups, target);
@@ -239,10 +297,18 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             }
         }
 
-        // Handle files dropped from explorer or tabs (text/uri-list) - only if no internal data handled it
+        // Handle files dropped from explorer or tabs (text/uri-list)
         const uriListItem = dataTransfer.get('text/uri-list');
-        if (uriListItem && targetGroup) {
-            await this.handleExternalFileDrop(uriListItem, targetGroup);
+        if (uriListItem) {
+            // If dropped on global section, create a new global group
+            if (isGlobalSection) {
+                await this.handleExternalFileDropToGlobal(uriListItem);
+                return;
+            }
+            // Otherwise add to target group if any
+            if (targetGroup) {
+                await this.handleExternalFileDrop(uriListItem, targetGroup);
+            }
         }
     }
 
@@ -255,18 +321,24 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             for (const draggedItem of draggedGroups) {
                 const draggedGroup = draggedItem.group;
 
-                // Only move if it's currently a subgroup
+                if (!draggedGroup) {
+                    continue;
+                }
+
+                // Dropping on empty space means local root
+                if (draggedGroup.isGlobal) {
+                    await this.storageService.updateGroupRecursive(draggedGroup.id, { isGlobal: false });
+                }
+
                 if (draggedGroup.parentId) {
-                    await this.storageService.updateGroup(draggedGroup.id, {
-                        parentId: undefined
-                    });
+                    await this.storageService.updateGroup(draggedGroup.id, { parentId: undefined });
                 }
             }
             this.provider.refresh();
             return;
         }
 
-        const targetGroup = target.itemType === 'group' || target.itemType === 'subgroup' ? target.group : null;
+        const targetGroup = target.itemType === 'group' ? target.group : null;
 
         if (!targetGroup) {
             return;
@@ -274,6 +346,10 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
 
         for (const draggedItem of draggedGroups) {
             const draggedGroup = draggedItem.group;
+
+            if (!draggedGroup) {
+                continue;
+            }
 
             // Don't drop on self
             if (draggedGroup.id === targetGroup.id) {
@@ -286,7 +362,14 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
                 continue;
             }
 
-            // Make the dragged group a subgroup of the target
+            // Move between local/global storage if needed
+            if (targetGroup.isGlobal !== draggedGroup.isGlobal) {
+                await this.storageService.updateGroupRecursive(draggedGroup.id, {
+                    isGlobal: targetGroup.isGlobal
+                });
+            }
+
+            // Make the dragged group a child of the target
             await this.storageService.updateGroup(draggedGroup.id, {
                 parentId: targetGroup.id
             });
@@ -317,7 +400,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
      */
     private async handleFileDrop(draggedFiles: FileGroupTreeItem[], targetGroup: FileGroup, targetFile?: GroupFile): Promise<void> {
         // Check if we're reordering within the same group
-        if (draggedFiles.length === 1 && draggedFiles[0].group.id === targetGroup.id && draggedFiles[0].file) {
+        if (draggedFiles.length === 1 && draggedFiles[0].group && draggedFiles[0].group.id === targetGroup.id && draggedFiles[0].file) {
             // Reorder within the same group
             const draggedFile = draggedFiles[0].file;
             await this.storageService.reorderFilesInGroup(
@@ -333,7 +416,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         let movedCount = 0;
 
         for (const item of draggedFiles) {
-            if (item.file && item.group.id !== targetGroup.id) {
+            if (item.file && item.group && item.group.id !== targetGroup.id) {
                 // Remove from source group
                 await this.storageService.removeFileFromGroup(item.group.id, item.file.path);
                 // Add to target group
@@ -391,6 +474,113 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
                 // Trigger decoration refresh for added files
                 if (this.onFilesAddedCallback) {
                     this.onFilesAddedCallback(uris);
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle files dropped from external sources onto the Global Groups section
+     */
+    private async handleExternalFileDropToGlobal(uriListItem: vscode.DataTransferItem): Promise<void> {
+        const uriListValue = await uriListItem.asString();
+        const uris = uriListValue
+            .split(/[\r\n]+/)
+            .filter(line => line.trim().length > 0)
+            .map(line => {
+                try {
+                    return vscode.Uri.parse(line.trim());
+                } catch {
+                    return null;
+                }
+            })
+            .filter((uri): uri is vscode.Uri => uri !== null && uri.scheme === 'file');
+
+        if (uris.length > 0) {
+            // Ask user to name the new global group or select existing
+            const globalGroups = this.storageService.getGlobalGroups();
+            const quickPickItems: vscode.QuickPickItem[] = [
+                { label: '$(add) Create New Global Group', description: 'Create a new group for these files' },
+                { label: '', kind: vscode.QuickPickItemKind.Separator }
+            ];
+
+            // Add existing global groups
+            globalGroups.filter(g => !g.parentId).forEach(g => {
+                quickPickItems.push({
+                    label: `$(${g.icon || 'folder'}) ${g.name}`,
+                    description: `${g.files.length} ${g.files.length === 1 ? 'file' : 'files'}`
+                });
+            });
+
+            const selection = await vscode.window.showQuickPick(quickPickItems, {
+                placeHolder: 'Add to existing global group or create new?'
+            });
+
+            if (!selection) {
+                return;
+            }
+
+            let targetGroup: FileGroup | undefined;
+
+            if (selection.label.includes('Create New')) {
+                // Create new global group
+                const name = await vscode.window.showInputBox({
+                    prompt: 'Enter global group name',
+                    placeHolder: 'My Global Group'
+                });
+
+                if (!name) {
+                    return;
+                }
+
+                const { generateId } = await import('./models.js');
+                const { CURRENT_USERNAME } = await import('./userInfo.js');
+                const groups = this.storageService.getGroups();
+                targetGroup = {
+                    id: generateId(),
+                    name,
+                    icon: 'globe',
+                    color: 'charts.blue',
+                    files: [],
+                    order: groups.length,
+                    parentId: undefined,
+                    createdBy: CURRENT_USERNAME,
+                    collapsed: false,
+                    isGlobal: true
+                };
+                await this.storageService.createGroup(targetGroup);
+            } else {
+                // Find the selected group
+                const groupName = selection.label.replace(/^\$\([^)]+\)\s*/, '');
+                targetGroup = globalGroups.find(g => g.name === groupName);
+            }
+
+            if (targetGroup) {
+                const files: GroupFile[] = [];
+
+                for (const uri of uris) {
+                    let isDirectory = false;
+                    try {
+                        const stat = await vscode.workspace.fs.stat(uri);
+                        isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
+                    } catch {
+                        // If stat fails, assume it's a file
+                    }
+
+                    files.push({
+                        path: uri.fsPath,
+                        name: uri.fsPath.split(/[/\\]/).pop() || 'unknown',
+                        isDirectory
+                    });
+                }
+
+                const addedCount = await this.storageService.addFilesToGroup(targetGroup.id, files);
+                if (addedCount > 0) {
+                    this.provider.refresh();
+                    // Trigger decoration refresh for added files
+                    if (this.onFilesAddedCallback) {
+                        this.onFilesAddedCallback(uris);
+                    }
                 }
             }
         }

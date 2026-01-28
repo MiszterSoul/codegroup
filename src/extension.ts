@@ -47,8 +47,9 @@ export async function activate(context: vscode.ExtensionContext) {
     // Initialize services
     storageService = new StorageService(context);
 
-    // Try to load from file first
+    // Try to load from file first (both local and global)
     await storageService.loadFromFile();
+    await storageService.loadFromGlobalFile();
 
     fileGroupsProvider = new FileGroupsProvider(storageService);
     fileDecorationProvider = new FileGroupDecorationProvider(storageService);
@@ -76,16 +77,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         treeView.onDidCollapseElement((event) => {
-            if (event.element.itemType === 'group' || event.element.itemType === 'subgroup') {
-                void storageService.updateGroup(event.element.group.id, { collapsed: true });
+            if (event.element.itemType === 'group') {
+                if (event.element.group) {
+                    void storageService.updateGroup(event.element.group.id, { collapsed: true });
+                }
             }
         })
     );
 
     context.subscriptions.push(
         treeView.onDidExpandElement((event) => {
-            if (event.element.itemType === 'group' || event.element.itemType === 'subgroup') {
-                void storageService.updateGroup(event.element.group.id, { collapsed: false });
+            if (event.element.itemType === 'group') {
+                if (event.element.group) {
+                    void storageService.updateGroup(event.element.group.id, { collapsed: false });
+                }
             }
         })
     );
@@ -165,8 +170,8 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
 }
 
 async function pickGroupForCommand(placeHolder: string, initialItem?: FileGroupTreeItem): Promise<FileGroup | undefined> {
-    if (initialItem && (initialItem.itemType === 'group' || initialItem.itemType === 'subgroup')) {
-        return initialItem.group;
+    if (initialItem && initialItem.itemType === 'group') {
+        return initialItem.group || undefined;
     }
 
     const groups = storageService.getGroups();
@@ -177,7 +182,7 @@ async function pickGroupForCommand(placeHolder: string, initialItem?: FileGroupT
 
     const groupItems = groups.map(g => ({
         label: `$(${g.icon || 'folder'}) ${g.name}`,
-        description: g.parentId ? '(subgroup)' : '',
+        description: g.parentId ? '(nested)' : '',
         groupId: g.id
     }));
 
@@ -220,13 +225,13 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
-    // Create a subgroup under an existing group
+    // Create a child group under an existing group
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.createSubgroup', async (item: FileGroupTreeItem) => {
-            if (item?.itemType === 'group' || item?.itemType === 'subgroup') {
+            if (item?.itemType === 'group' && item.group) {
                 const name = await vscode.window.showInputBox({
-                    prompt: `Enter subgroup name (under "${item.group.name}")`,
-                    placeHolder: 'My Subgroup'
+                    prompt: `Enter child group name (under "${item.group.name}")`,
+                    placeHolder: 'My Child Group'
                 });
 
                 if (name) {
@@ -249,14 +254,14 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
-    // Delete a group (with confirmation for subgroups)
+    // Delete a group (with confirmation for children)
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.deleteGroup', async (item: FileGroupTreeItem) => {
-            if (item?.itemType === 'group' || item?.itemType === 'subgroup') {
-                const subgroups = storageService.getSubgroups(item.group.id);
-                const message = subgroups.length > 0
-                    ? `Delete group "${item.group.name}" and ${subgroups.length} subgroup(s)?`
-                    : `Delete group "${item.group.name}"?`;
+            if (item?.itemType === 'group' && item.group) {
+                const childGroups = storageService.getSubgroups(item.group.id);
+                const message = childGroups.length > 0
+                    ? `Delete group "${item.group.name}" and ${childGroups.length} child group(s)?`
+                    : `Delete group "${item.group.name}\"?`;
 
                 const confirm = await vscode.window.showWarningMessage(
                     message,
@@ -287,7 +292,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
             const groupItems = groups.map(g => ({
                 label: `$(${g.icon || 'folder'}) ${g.name}`,
-                description: g.parentId ? '(subgroup)' : '',
+                description: g.parentId ? '(nested)' : '',
                 groupId: g.id,
                 groupName: g.name
             }));
@@ -314,10 +319,10 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
-    // Move a subgroup to root level
+    // Move a nested group to root level
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.moveToRoot', async (item: FileGroupTreeItem) => {
-            if ((item?.itemType === 'group' || item?.itemType === 'subgroup') && item.group.parentId) {
+            if (item?.itemType === 'group' && item.group && item.group.parentId) {
                 await storageService.updateGroup(item.group.id, { parentId: undefined });
                 fileGroupsProvider.refresh();
             }
@@ -351,7 +356,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Rename a group
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.renameGroup', async (item: FileGroupTreeItem) => {
-            if (item?.itemType === 'group' || item?.itemType === 'subgroup') {
+            if (item?.itemType === 'group' && item.group) {
                 const newName = await vscode.window.showInputBox({
                     prompt: 'Enter new group name',
                     value: item.group.name
@@ -367,7 +372,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Set group icon
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.setGroupIcon', async (item: FileGroupTreeItem) => {
-            if (item?.itemType === 'group' || item?.itemType === 'subgroup') {
+            if (item?.itemType === 'group' && item.group) {
                 const iconItems = GROUP_ICONS.map(icon => ({
                     label: icon.label,
                     iconId: icon.id
@@ -388,7 +393,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Set group color
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.setGroupColor', async (item: FileGroupTreeItem) => {
-            if (item?.itemType === 'group' || item?.itemType === 'subgroup') {
+            if (item?.itemType === 'group' && item.group) {
                 const colorItems = GROUP_COLORS.map(color => ({
                     label: color.label,
                     colorId: color.id
@@ -426,7 +431,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
                     await storageService.updateGroup(item.group.id, { color: colorValue });
                     fileGroupsProvider.refresh();
-                    // Refresh decorations for all files in this group and subgroups
+                    // Refresh decorations for all files in this group and child groups
                     const allFiles = storageService.getAllFilesInGroup(item.group.id);
                     const uris = allFiles.map(f => vscode.Uri.file(f.path));
                     fileDecorationProvider.refresh(uris);
@@ -701,7 +706,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             // If only one group, reveal it directly
             if (groupsWithFile.length === 1) {
                 const group = groupsWithFile[0];
-                const item = new FileGroupTreeItem(group.parentId ? 'subgroup' : 'group', group);
+                const item = new FileGroupTreeItem('group', group);
                 await treeView.reveal(item, { focus: true, select: true, expand: true });
                 return;
             }
@@ -709,7 +714,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             // If multiple groups, let user choose
             const groupItems = groupsWithFile.map(g => ({
                 label: `$(${g.icon || 'folder'}) ${g.name}`,
-                description: g.parentId ? '(subgroup)' : '',
+                description: g.parentId ? '(nested)' : '',
                 group: g
             }));
 
@@ -718,7 +723,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                const item = new FileGroupTreeItem(selected.group.parentId ? 'subgroup' : 'group', selected.group);
+                const item = new FileGroupTreeItem('group', selected.group);
                 await treeView.reveal(item, { focus: true, select: true, expand: true });
             }
         })
@@ -739,7 +744,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             const urisToRefresh: vscode.Uri[] = [];
 
             for (const fileItem of itemsToRemove) {
-                if (fileItem.file) {
+                if (fileItem.file && fileItem.group) {
                     urisToRefresh.push(vscode.Uri.file(fileItem.file.path));
                     await storageService.removeFileFromGroup(fileItem.group.id, fileItem.file.path);
                 }
@@ -753,11 +758,11 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
-    // Open all files in a group (including subgroups)
+    // Open all files in a group (including child groups)
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.openAll', async (item: FileGroupTreeItem) => {
-            if (item?.itemType === 'group' || item?.itemType === 'subgroup') {
-                // Get all files including from subgroups
+            if (item?.itemType === 'group' && item.group) {
+                // Get all files including from child groups
                 const allFiles = storageService.getAllFilesInGroup(item.group.id);
 
                 if (allFiles.length > 0) {
@@ -777,11 +782,11 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
-    // Close all files in a group (including subgroups, only group files, not other tabs)
+    // Close all files in a group (including child groups, only group files, not other tabs)
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.closeAll', async (item: FileGroupTreeItem) => {
-            if (item?.itemType === 'group' || item?.itemType === 'subgroup') {
-                // Get all files including from subgroups
+            if (item?.itemType === 'group' && item.group) {
+                // Get all files including from child groups
                 const allFiles = storageService.getAllFilesInGroup(item.group.id);
 
                 if (allFiles.length > 0) {
@@ -869,6 +874,123 @@ function registerCommands(context: vscode.ExtensionContext) {
             if (selection) {
                 await storageService.updateGroup(group.id, { sortOrder: selection.sortOrder });
                 fileGroupsProvider.refresh();
+            }
+        })
+    );
+
+    // Move group to global
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.moveToGlobal', async (item: FileGroupTreeItem) => {
+            if (item && item.itemType === 'group' && item.group && !item.group.isGlobal) {
+                const confirmMessage = item.group.parentId
+                    ? `Move "${item.group.name}" and all its contents to Global Groups? It will be available in all projects.`
+                    : `Move "${item.group.name}" and all its child groups to Global Groups? It will be available in all projects.`;
+
+                const confirm = await vscode.window.showWarningMessage(
+                    confirmMessage,
+                    { modal: true },
+                    'Move to Global'
+                );
+
+                if (confirm === 'Move to Global') {
+                    await storageService.updateGroupRecursive(item.group.id, { isGlobal: true });
+                    await storageService.updateGroup(item.group.id, { parentId: undefined });
+                    fileGroupsProvider.refresh();
+                    void vscode.window.showInformationMessage(`"${item.group.name}" moved to Global Groups`);
+                }
+            }
+        })
+    );
+
+    // Move group to local
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.moveToLocal', async (item: FileGroupTreeItem) => {
+            if (item && item.itemType === 'group' && item.group && item.group.isGlobal) {
+                const confirmMessage = item.group.parentId
+                    ? `Move "${item.group.name}" and all its contents to Local Groups? It will only be available in this project.`
+                    : `Move "${item.group.name}" and all its child groups to Local Groups? It will only be available in this project.`;
+
+                const confirm = await vscode.window.showWarningMessage(
+                    confirmMessage,
+                    { modal: true },
+                    'Move to Local'
+                );
+
+                if (confirm === 'Move to Local') {
+                    await storageService.updateGroupRecursive(item.group.id, { isGlobal: false });
+                    await storageService.updateGroup(item.group.id, { parentId: undefined });
+                    fileGroupsProvider.refresh();
+                    void vscode.window.showInformationMessage(`"${item.group.name}" moved to Local Groups`);
+                }
+            }
+        })
+    );
+
+    // Duplicate group
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.duplicateGroup', async (item: FileGroupTreeItem) => {
+            if (item?.itemType === 'group' && item.group) {
+                const newName = await vscode.window.showInputBox({
+                    prompt: 'Enter name for the copy',
+                    value: `${item.group.name} (Copy)`,
+                    placeHolder: 'Copy name'
+                });
+
+                if (newName) {
+                    // Create a deep copy of the group
+                    const copyGroup: FileGroup = {
+                        id: generateId(),
+                        name: newName,
+                        icon: item.group.icon,
+                        color: item.group.color,
+                        shortDescription: item.group.shortDescription,
+                        details: item.group.details,
+                        createdBy: CURRENT_USERNAME,
+                        collapsed: false,
+                        pinned: false,
+                        badgeText: item.group.badgeText,
+                        files: [...item.group.files], // Copy files array
+                        sortOrder: item.group.sortOrder,
+                        order: storageService.getGroups().length,
+                        parentId: item.group.parentId,
+                        isGlobal: false // Copies are always local by default
+                    };
+
+                    await storageService.createGroup(copyGroup);
+                    fileGroupsProvider.refresh();
+                    void vscode.window.showInformationMessage(`Created copy: "${newName}"`);
+                }
+            }
+        })
+    );
+
+    // Open global config file
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.openGlobalConfig', async () => {
+            const globalConfigUri = vscode.Uri.joinPath(context.globalStorageUri, 'file-groups-global.json');
+
+            try {
+                // Ensure the directory exists
+                await vscode.workspace.fs.createDirectory(context.globalStorageUri);
+
+                // Check if file exists, if not create it
+                try {
+                    await vscode.workspace.fs.stat(globalConfigUri);
+                } catch {
+                    // File doesn't exist, create it with empty structure
+                    const emptyConfig = {
+                        version: 2,
+                        groups: []
+                    };
+                    const content = Buffer.from(JSON.stringify(emptyConfig, null, 2), 'utf-8');
+                    await vscode.workspace.fs.writeFile(globalConfigUri, content);
+                }
+
+                // Open the file
+                const document = await vscode.workspace.openTextDocument(globalConfigUri);
+                await vscode.window.showTextDocument(document);
+            } catch (error) {
+                void vscode.window.showErrorMessage(`Failed to open global config: ${error}`);
             }
         })
     );

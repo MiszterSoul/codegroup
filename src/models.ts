@@ -73,6 +73,8 @@ export interface FileGroup {
     order: number;
     /** Parent group ID (null/undefined for root groups) */
     parentId?: string;
+    /** Whether this is a global group (available in all projects) */
+    isGlobal?: boolean;
 }
 
 /**
@@ -81,6 +83,8 @@ export interface FileGroup {
 export interface FileGroupsConfig {
     version: number;
     groups: FileGroup[];
+    /** Hide global groups in this project */
+    hideGlobalGroups?: boolean;
 }
 
 /**
@@ -269,48 +273,60 @@ export function getThemeColorForHex(hexColor: string): string {
 /**
  * Tree item types for context value
  */
-export type TreeItemType = 'group' | 'subgroup' | 'file';
+export type TreeItemType = 'group' | 'file' | 'section';
 
 /**
- * Tree item representing either a group, subgroup, or a file
+ * Tree item representing either a group, file, or section header
  */
 export class FileGroupTreeItem extends vscode.TreeItem {
     constructor(
         public readonly itemType: TreeItemType,
-        public readonly group: FileGroup,
+        public readonly group: FileGroup | null,
         public readonly file?: GroupFile,
         public readonly hasChildren: boolean = false,
-        public readonly subgroupCount: number = 0,
+        public readonly childCount: number = 0,
         public readonly totalItemCount: number = 0,
         public readonly allFiles: GroupFile[] = []
     ) {
         super(
-            file ? file.name : group.name,
-            file
-                ? vscode.TreeItemCollapsibleState.None
-                : (group.collapsed
-                    ? vscode.TreeItemCollapsibleState.Collapsed
-                    : vscode.TreeItemCollapsibleState.Expanded)
+            itemType === 'section' ? 'Global Groups' : (file ? file.name : group!.name),
+            itemType === 'section'
+                ? vscode.TreeItemCollapsibleState.Expanded
+                : (file
+                    ? vscode.TreeItemCollapsibleState.None
+                    : (group!.collapsed
+                        ? vscode.TreeItemCollapsibleState.Collapsed
+                        : vscode.TreeItemCollapsibleState.Expanded))
         );
 
         // Set unique ID for state preservation during refresh
-        if (file) {
-            this.id = `${group.id}:file:${file.path}`;
+        if (itemType === 'section') {
+            this.id = 'global-groups-section';
+            this.contextValue = 'section';
+            this.iconPath = new vscode.ThemeIcon('globe');
+            this.description = hasChildren ? `${totalItemCount} ${totalItemCount === 1 ? 'group' : 'groups'}` : undefined;
+        } else if (file) {
+            this.id = `${group!.id}:file:${file.path}`;
         } else {
-            this.id = `${group.id}`;
+            this.id = `${group!.id}`;
         }
 
         // Set context value for menus
         // Use pinned/unpinned suffix to show correct pin/unpin menu item
-        if (file) {
+        // Use global prefix for global groups
+        if (itemType === 'section') {
+            // Already set above
+        } else if (file) {
             this.contextValue = 'file';
-        } else if (itemType === 'subgroup') {
-            this.contextValue = group.pinned ? 'subgroup_pinned' : 'subgroup_unpinned';
+        } else if (group!.isGlobal) {
+            // Global groups
+            this.contextValue = group!.pinned ? 'global_group_pinned' : 'global_group_unpinned';
         } else {
-            this.contextValue = group.pinned ? 'group_pinned' : 'group_unpinned';
+            // Local groups
+            this.contextValue = group!.pinned ? 'group_pinned' : 'group_unpinned';
         }
 
-        if (file) {
+        if (file && group) {
             // File or folder item
             this.resourceUri = vscode.Uri.file(file.path);
             this.tooltip = file.path;
@@ -332,16 +348,16 @@ export class FileGroupTreeItem extends vscode.TreeItem {
                     arguments: [this.resourceUri]
                 };
             }
-        } else {
-            // Group item - build description with file count, folder count, and subgroups
+        } else if (group && itemType !== 'section') {
+            // Group item - build description with file count and child groups
             const fileCount = group.files.filter(f => !f.isDirectory).length;
             const folderCount = group.files.filter(f => f.isDirectory).length;
 
             // Build description parts
             const statsParts: string[] = [];
 
-            if (subgroupCount > 0) {
-                statsParts.push(`${subgroupCount} ${subgroupCount === 1 ? 'subgroup' : 'subgroups'}`);
+            if (childCount > 0) {
+                statsParts.push(`${childCount} ${childCount === 1 ? 'child' : 'children'}`);
             }
             if (fileCount > 0) {
                 statsParts.push(`${fileCount} ${fileCount === 1 ? 'file' : 'files'}`);
@@ -350,8 +366,8 @@ export class FileGroupTreeItem extends vscode.TreeItem {
                 statsParts.push(`${folderCount} ${folderCount === 1 ? 'folder' : 'folders'}`);
             }
 
-            // If showing total from subgroups too
-            if (subgroupCount > 0 && totalItemCount > group.files.length) {
+            // If showing total from children too
+            if (childCount > 0 && totalItemCount > group.files.length) {
                 const totalFiles = totalItemCount;
                 statsParts.push(`(${totalFiles} total)`);
             }
@@ -391,6 +407,10 @@ export class FileGroupTreeItem extends vscode.TreeItem {
 
             const tooltipLines: string[] = [`**${group.name}**`];
 
+            if (group.isGlobal) {
+                tooltipLines.push('', `🌐 _Global Group (available in all projects)_`);
+            }
+
             if (group.shortDescription) {
                 tooltipLines.push('', `_${group.shortDescription}_`);
             }
@@ -399,10 +419,10 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             tooltipLines.push('', '---', '**📊 Statistics**');
             tooltipLines.push(`- Files: ${fileCount}`);
             tooltipLines.push(`- Folders: ${folderCount}`);
-            if (subgroupCount > 0) {
-                tooltipLines.push(`- Subgroups: ${subgroupCount}`);
+            if (childCount > 0) {
+                tooltipLines.push(`- Child groups: ${childCount}`);
                 if (totalItemCount > group.files.length) {
-                    tooltipLines.push(`- Total items (incl. subgroups): ${totalItemCount}`);
+                    tooltipLines.push(`- Total items (incl. children): ${totalItemCount}`);
                 }
             }
             tooltipLines.push(`- Lines of code: ${totalLines.toLocaleString()}`);
