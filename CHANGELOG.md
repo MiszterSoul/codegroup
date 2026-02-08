@@ -115,3 +115,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat:** Git-friendly storage in `.vscode/file-groups.json`
 - **feat:** Move subgroups to root level
 - **feat:** File decoration provider for tab and explorer coloring
+.github/steps/1-create-a-branch.md
