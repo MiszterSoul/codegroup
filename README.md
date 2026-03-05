@@ -3,6 +3,7 @@
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/PeterDev.codegroup-file-organizer?style=flat-square&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/PeterDev.codegroup-file-organizer?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
+[![Open VSX Installs](https://img.shields.io/open-vsx/dt/PeterDev/codegroup-file-organizer?style=flat-square)](https://open-vsx.org/extension/PeterDev/codegroup-file-organizer)
 [![GitHub stars](https://img.shields.io/github/stars/MiszterSoul/codegroup?style=flat-square)](https://github.com/MiszterSoul/codegroup)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
