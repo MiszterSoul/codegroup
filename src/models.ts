@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as path from 'path';
 import { NORMALIZED_CURRENT_USERNAME, normalizeUsername } from './userInfo';
 
 /**
@@ -27,6 +28,21 @@ function calculateFileStats(files: GroupFile[]): { totalLines: number; lastModif
     }
 
     return { totalLines, lastModified };
+}
+
+/**
+ * Build a compact folder suffix from a file path using the last N parent folders.
+ */
+function getParentFoldersSuffix(filePath: string, maxFolders: number = 2): string | undefined {
+    const normalized = filePath.split(path.sep).join('/');
+    const parts = normalized.split('/').filter(Boolean);
+
+    if (parts.length <= 1) {
+        return undefined;
+    }
+
+    const parentFolders = parts.slice(0, -1).slice(-maxFolders);
+    return parentFolders.length > 0 ? parentFolders.join('/') : undefined;
 }
 
 /**
@@ -330,6 +346,7 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             // File or folder item
             this.resourceUri = vscode.Uri.file(file.path);
             this.tooltip = file.path;
+            this.description = getParentFoldersSuffix(file.path, 2);
 
             if (file.isDirectory) {
                 // Folder item - show folder icon and reveal in explorer on click

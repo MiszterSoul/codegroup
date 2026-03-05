@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.1.1] - 2026-03-05
+
+### Changed
+
+- **improvement:** File items in CodeGroup now show a compact parent path suffix (up to the last 2 folders) next to the filename, making repeated names like `route.ts` and `route.tsx` easier to distinguish.
+- **improvement:** Full absolute path remains available on hover for detailed context.
+
 ## [1.1.0] - 2026-01-28
 
 ### Added

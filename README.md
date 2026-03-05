@@ -151,9 +151,17 @@ None at this time. Please report issues on [GitHub](https://github.com/MiszterSo
 
 See [CHANGELOG.md](CHANGELOG.md) for full release history.
 
-### 1.0.7
-- Removed test infrastructure to reduce package size
-- Optimized icon size from 14.6kb to 5.5kb
+### 1.1.1
+- File items now show up to the last 2 parent folders next to filename for easier disambiguation (for example, repeated `route.ts` files)
+- Full path on hover remains unchanged
+
+### 1.1.0
+- Added global groups available across projects
+- Added quick create group action from empty area context menu
+
+### 1.0.8
+- Added file sorting options (name, date, type, manual)
+- Switched bundler to Bun and reduced package size
 
 ---
 
