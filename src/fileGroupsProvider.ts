@@ -5,6 +5,26 @@ import { FileGroup, FileGroupTreeItem, GroupFile } from './models';
 import { StorageService } from './storageService';
 
 /**
+ * Recursively enumerate all files under a directory and call `addUri` for each.
+ * Skips paths that can't be read.
+ */
+function collectFilesFromDir(dirPath: string, addUri: (filePath: string) => void): void {
+    try {
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(dirPath, entry.name);
+            if (entry.isDirectory()) {
+                collectFilesFromDir(fullPath, addUri);
+            } else {
+                addUri(fullPath);
+            }
+        }
+    } catch {
+        // Unreadable directory — skip silently
+    }
+}
+
+/**
  * Tree data provider for file groups with hierarchical support
  */
 export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTreeItem> {
@@ -219,13 +239,56 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         dataTransfer: vscode.DataTransfer,
         _token: vscode.CancellationToken
     ): void {
-        // Export file URIs for files being dragged (for external drops)
-        const files = source.filter(item => item.itemType === 'file' && item.file);
-        if (files.length > 0) {
-            const uris = files
-                .map(item => vscode.Uri.file(item.file!.path).toString())
-                .join('\r\n');
-            dataTransfer.set('text/uri-list', new vscode.DataTransferItem(uris));
+        // Collect file URIs to export.
+        // Keep URI formatting canonical (`toString`) to match built-in explorer/editor drags.
+        const uriSet = new Set<string>();
+
+        const addFile = (filePath: string) => {
+            uriSet.add(vscode.Uri.file(filePath).toString());
+        };
+
+        for (const item of source) {
+            if (item.itemType === 'file' && item.file) {
+                if (item.file.isDirectory) {
+                    // Saved-folder entry: enumerate immediate children and add each file
+                    collectFilesFromDir(item.file.path, addFile);
+                } else {
+                    addFile(item.file.path);
+                }
+            } else if (item.itemType === 'group' && item.group) {
+                const allFiles = this.storageService.getAllFilesInGroup(item.group.id);
+                for (const file of allFiles) {
+                    if (file.isDirectory) {
+                        collectFilesFromDir(file.path, addFile);
+                    } else {
+                        addFile(file.path);
+                    }
+                }
+            }
+        }
+
+        if (uriSet.size > 0) {
+            const uris = [...uriSet];
+            const uriListText = uris.join('\r\n');
+
+            // Standard external drop channel used by explorer/editor drags.
+            dataTransfer.set('text/uri-list', new vscode.DataTransferItem(uriListText));
+
+            // VS Code internal drag channels consumed by workbench/editor/chat drop handlers.
+            // Keep payload shape minimal and URI-based to mirror built-in file dragging semantics.
+            dataTransfer.set('ResourceURLs', new vscode.DataTransferItem(uriListText));
+            dataTransfer.set(
+                'CodeEditors',
+                new vscode.DataTransferItem(
+                    JSON.stringify(uris.map(uri => ({ resource: uri })))
+                )
+            );
+            dataTransfer.set(
+                'CodeFiles',
+                new vscode.DataTransferItem(
+                    JSON.stringify(uris.map(uri => vscode.Uri.parse(uri).fsPath))
+                )
+            );
         }
 
         // Set internal drag data for all operations (groups, subgroups, files)

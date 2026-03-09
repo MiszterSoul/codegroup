@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.1.2] - 2026-03-09
+
+### Added
+
+- **feat:** Drag and drop from CodeGroup to Copilot Chat now attaches files directly from groups, including multiple files in one drag.
+
+### Changed
+
+- **improvement:** `Open All Files` is now significantly faster by opening grouped files in a batched flow instead of one-by-one.
+- **improvement:** Dragging a group into the editor opens the full set of group files instantly for a quicker workflow.
+
 ## [1.1.1] - 2026-03-05
 
 ### Changed

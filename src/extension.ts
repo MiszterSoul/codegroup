@@ -766,16 +766,22 @@ function registerCommands(context: vscode.ExtensionContext) {
                 const allFiles = storageService.getAllFilesInGroup(item.group.id);
 
                 if (allFiles.length > 0) {
-                    for (const file of allFiles) {
-                        try {
-                            const uri = vscode.Uri.file(file.path);
-                            await vscode.window.showTextDocument(uri, {
-                                preview: false,
-                                preserveFocus: true
-                            });
-                        } catch (error) {
-                            // Could not open file, skip silently
-                        }
+                    // Batch open for speed: dedupe file paths and skip folder entries.
+                    const uniqueFilePaths = [...new Set(
+                        allFiles
+                            .filter(file => !file.isDirectory)
+                            .map(file => file.path)
+                    )];
+
+                    if (uniqueFilePaths.length > 0) {
+                        await Promise.allSettled(
+                            uniqueFilePaths.map(filePath =>
+                                vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath), {
+                                    preview: false,
+                                    preserveFocus: true
+                                })
+                            )
+                        );
                     }
                 }
             }

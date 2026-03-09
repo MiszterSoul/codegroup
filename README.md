@@ -47,12 +47,14 @@
 ### 🖱️ Drag & Drop
 - Drag files from Explorer into groups
 - Drag tabs into groups
+- Drag groups into Copilot Chat to attach multiple files at once
+- Drag a group into the editor to open its files instantly
 - Drag groups onto other groups to create subgroups
 - Drag subgroups to empty space to move them back to root
 - Reorder files within groups
 
 ### ⚡ Quick Actions
-- **Open All**: Open all files in a group (including subgroups)
+- **Open All**: Open all files in a group (including subgroups) with improved speed
 - **Close All**: Close only files from a specific group
 - **Pin groups**: Keep important groups at the top (📌)
 - **Expand/Collapse All**: Quick navigation in title bar
@@ -152,6 +154,11 @@ None at this time. Please report issues on [GitHub](https://github.com/MiszterSo
 
 See [CHANGELOG.md](CHANGELOG.md) for full release history.
 
+### 1.1.2
+- Added drag and drop from groups to Copilot Chat, including multiple files in one drop
+- Improved `Open All Files` speed significantly
+- Dragging a group into the editor now opens all group files instantly
+
 ### 1.1.1
 - File items now show up to the last 2 parent folders next to filename for easier disambiguation (for example, repeated `route.ts` files)
 - Full path on hover remains unchanged
@@ -159,11 +166,6 @@ See [CHANGELOG.md](CHANGELOG.md) for full release history.
 ### 1.1.0
 - Added global groups available across projects
 - Added quick create group action from empty area context menu
-
-### 1.0.8
-- Added file sorting options (name, date, type, manual)
-- Switched bundler to Bun and reduced package size
-
 ---
 
 ## 🤝 Contributing
