@@ -23,7 +23,7 @@
 
 ## 🚀 Quick Start
 
-1. Click the **File Groups** icon (📦) in the Activity Bar
+1. Open **CodeGroup** in the Explorer sidebar
 2. Click **+** to create a new group
 3. Drag files from Explorer into your group
 4. Done! Click a file to open it, or "Open All" to open the entire group
@@ -40,9 +40,11 @@
 
 ### 🎨 Customization
 - **120+ icons**: folder, rocket, flame, star, key, database, and more
-- **Colors**: 9 predefined colors OR any **custom hex color** (e.g., `#FF5733`)
+- **Colors**: extended theme palette plus any **custom hex color** (e.g., `#FF5733`)
 - **Badges**: Custom 1-2 character badge for file decorations
 - **Descriptions**: Add notes with Markdown support
+- **Group Editor**: Update the main settings for a group in one editor panel instead of stepping through separate prompts
+- **Presets**: Apply one-click Frontend, Backend, Scripts, Docs, or Research styling presets inside the editor
 
 ### 🖱️ Drag & Drop
 - Drag files from Explorer into groups
@@ -56,8 +58,21 @@
 ### ⚡ Quick Actions
 - **Open All**: Open all files in a group (including subgroups) with improved speed
 - **Close All**: Close only files from a specific group
+- **Quick Open**: Search every grouped file from one picker, with recently opened CodeGroup files pinned at the top
+- **Quick Actions Section**: Create, import, search, or auto-build groups from a persistent section at the bottom of the tree
 - **Pin groups**: Keep important groups at the top (📌)
 - **Expand/Collapse All**: Quick navigation in title bar
+
+### ✨ Smart Groups & Sharing
+- **Create Smart Groups**: Auto-group the workspace by project areas like frontend, backend, docs, tests, scripts, and source core
+- **Language-based Grouping**: Generate groups from language families like TypeScript, JavaScript, styles, docs, config, media, and more
+- **Shareable Group JSON**: Export a whole group tree as JSON, copy it to the clipboard, and import it in another workspace later
+- **More Group Actions**: The group context menu stays lean, while a single action hub exposes rename, duplicate, move, sort, export, and other advanced operations
+
+### ⚙️ Working Sets
+- **Create from Open Editors**: Turn your currently open tabs into a group instantly
+- **Create from Git Changes**: Capture your uncommitted work as a review or bugfix group
+- Start from a generated working set, then rename or refine it like any other group
 
 ### 🔄 Smart File Tracking
 - Auto-handles file renames – files stay in groups with updated names
@@ -89,8 +104,16 @@ All commands available via Command Palette (`Ctrl+Shift+P`):
 
 | Command | Description |
 |---------|-------------|
+| `File Groups: Quick Open from Groups` | Search and open any grouped file, with recent CodeGroup files first |
+| `File Groups: Create Smart Groups` | Auto-build groups by project areas or language families |
+| `File Groups: Import Shared Group` | Import a shareable CodeGroup JSON from clipboard or file |
+| `File Groups: Export Group as Shareable JSON` | Copy a group tree as reusable JSON |
+| `File Groups: More Group Actions...` | Open the advanced action hub for rename, duplicate, move, sort, and export |
 | `File Groups: Create Group` | Create a new root file group |
+| `File Groups: Create Group from Open Editors` | Create a group from the files currently open in tabs |
+| `File Groups: Create Group from Git Changes` | Create a group from uncommitted Git changes in the current workspace |
 | `File Groups: Create Subgroup` | Create a subgroup under selected group |
+| `File Groups: Open Group Editor` | Edit name, icon, color, badge, descriptions, scope, and file membership in one panel |
 | `File Groups: Delete Group...` | Delete a group (with picker) |
 | `File Groups: Edit Summary` | Set short description for a group |
 | `File Groups: Edit Description` | Add longer Markdown notes |
@@ -154,10 +177,22 @@ None at this time. Please report issues on [GitHub](https://github.com/MiszterSo
 
 See [CHANGELOG.md](CHANGELOG.md) for full release history.
 
+### 1.3.0
+- Added persistent Quick Actions under the tree so create/import/smart-group flows stay visible even after you already have groups
+- Added Smart Groups for project areas and language families
+- Added shareable group export/import via JSON
+- Added editor presets and extra color options for faster setup
+- Reduced the group context menu and moved advanced actions into one `More Group Actions...` hub
+
 ### 1.1.2
 - Added drag and drop from groups to Copilot Chat, including multiple files in one drop
 - Improved `Open All Files` speed significantly
 - Dragging a group into the editor now opens all group files instantly
+
+### 1.2.0
+- Added `Quick Open from Groups` to search grouped files by filename, group name, notes, or path
+- Recently opened CodeGroup files now float to the top for faster repeat navigation
+- Missing files opened from CodeGroup now offer cleanup immediately instead of failing silently
 
 ### 1.1.1
 - File items now show up to the last 2 parent folders next to filename for easier disambiguation (for example, repeated `route.ts` files)

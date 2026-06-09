@@ -1,14 +1,311 @@
+import { execFile } from 'child_process';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { FileGroup, FileGroupTreeItem, GroupFile, GROUP_ICONS, GROUP_COLORS, generateId, isHexColor } from './models';
 import { CURRENT_USERNAME } from './userInfo';
 import { StorageService } from './storageService';
 import { FileGroupsProvider, FileGroupsDragDropController } from './fileGroupsProvider';
 import { FileGroupDecorationProvider } from './fileDecorationProvider';
+import { GroupEditorPanel } from './groupEditorPanel';
+import { CODEGROUP_LANGUAGE_CONFIGURATION_KEY, countLabel, getLanguageLabel, getLanguageOptions, getLocalizedSmartGroupText, normalizeCodeGroupLanguage, t } from './i18n';
+import { buildGroupedFileQuickOpenSections, makeRecentGroupFileKey, normalizeRecentGroupFileKeys } from './quickOpen';
+import { buildSharedGroupPayload, importSharedGroupPayload, isSharedGroupPayload } from './sharedGroups';
+import { SmartGroupSuggestion, suggestSmartGroups } from './smartGroups';
 
 let storageService: StorageService;
 let fileGroupsProvider: FileGroupsProvider;
 let fileDecorationProvider: FileGroupDecorationProvider;
 let treeView: vscode.TreeView<FileGroupTreeItem>;
+
+const RECENT_GROUP_FILES_STORAGE_KEY = 'recentGroupFiles';
+const SMART_GROUP_FILE_LIMIT = 4000;
+
+type PresetGroupOptions = {
+    defaultName: string;
+    prompt: string;
+    emptyMessage: string;
+    files: GroupFile[];
+    icon: string;
+    color: string;
+    shortDescription: string;
+};
+
+function getFileName(filePath: string): string {
+    return path.basename(filePath);
+}
+
+function getWorkspaceRoot(): string | undefined {
+    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
+function createFileGroupEntry(filePath: string): GroupFile {
+    return {
+        path: filePath,
+        name: getFileName(filePath),
+        isDirectory: false
+    };
+}
+
+function dedupeGroupFiles(files: GroupFile[]): GroupFile[] {
+    const seen = new Set<string>();
+
+    return files.filter((file) => {
+        if (seen.has(file.path)) {
+            return false;
+        }
+
+        seen.add(file.path);
+        return true;
+    });
+}
+
+function getRecentGroupFileKeys(context: vscode.ExtensionContext): string[] {
+    const recentKeys = context.workspaceState.get<string[]>(RECENT_GROUP_FILES_STORAGE_KEY, []);
+    return normalizeRecentGroupFileKeys(recentKeys);
+}
+
+async function rememberRecentGroupFile(context: vscode.ExtensionContext, groupId: string, filePath: string): Promise<void> {
+    const recentKeys = getRecentGroupFileKeys(context);
+    const nextKeys = normalizeRecentGroupFileKeys([
+        makeRecentGroupFileKey(groupId, filePath),
+        ...recentKeys
+    ]);
+
+    await context.workspaceState.update(RECENT_GROUP_FILES_STORAGE_KEY, nextKeys);
+}
+
+async function openGroupedFile(
+    context: vscode.ExtensionContext,
+    groupId: string,
+    filePath: string,
+    options?: vscode.TextDocumentShowOptions
+): Promise<void> {
+    const fileUri = vscode.Uri.file(filePath);
+
+    try {
+        await vscode.workspace.fs.stat(fileUri);
+    } catch {
+        const selection = await vscode.window.showWarningMessage(
+            t('groupedFile.missing.prompt'),
+            t('action.cleanUp')
+        );
+
+        if (selection === t('action.cleanUp')) {
+            await vscode.commands.executeCommand('fileGroups.cleanupMissingFiles');
+        }
+        return;
+    }
+
+    await vscode.commands.executeCommand('vscode.open', fileUri, options);
+    await rememberRecentGroupFile(context, groupId, filePath);
+}
+
+function getAllStoredGroups(): FileGroup[] {
+    const localGroups = storageService.getGroups().filter((group) => !group.isGlobal);
+    return [...storageService.getGlobalGroups(), ...localGroups];
+}
+
+function makeUniqueGroupName(existingNames: Set<string>, baseName: string): string {
+    let candidate = baseName;
+    let suffix = 2;
+
+    while (existingNames.has(candidate.toLowerCase())) {
+        candidate = `${baseName} (${suffix})`;
+        suffix += 1;
+    }
+
+    existingNames.add(candidate.toLowerCase());
+    return candidate;
+}
+
+async function collectWorkspaceFilesForSmartGroups(): Promise<GroupFile[]> {
+    const uris = await vscode.workspace.findFiles(
+        '**/*',
+        '**/{node_modules,.git,out,dist,build,.next,coverage,.turbo,.vscode}/**',
+        SMART_GROUP_FILE_LIMIT
+    );
+
+    return dedupeGroupFiles(
+        uris.map((uri) => ({
+            path: uri.fsPath,
+            name: getFileName(uri.fsPath),
+            isDirectory: false
+        }))
+    );
+}
+
+async function createSuggestedGroups(suggestions: readonly SmartGroupSuggestion[]): Promise<FileGroup[]> {
+    const existingGroups = getAllStoredGroups();
+    const existingNames = new Set(existingGroups.map((group) => group.name.toLowerCase()));
+    const nextGroups = [...existingGroups];
+    const createdGroups: FileGroup[] = [];
+
+    for (const suggestion of suggestions) {
+        const newGroup: FileGroup = {
+            id: generateId(),
+            name: makeUniqueGroupName(existingNames, suggestion.name),
+            icon: suggestion.icon,
+            color: suggestion.color,
+            shortDescription: suggestion.shortDescription,
+            files: dedupeGroupFiles(suggestion.files),
+            order: nextGroups.length,
+            parentId: undefined,
+            createdBy: CURRENT_USERNAME,
+            collapsed: false
+        };
+
+        nextGroups.push(newGroup);
+        createdGroups.push(newGroup);
+    }
+
+    if (createdGroups.length === 0) {
+        return [];
+    }
+
+    await storageService.saveGroups(nextGroups);
+    fileGroupsProvider.refresh();
+    fileDecorationProvider.refresh(createdGroups.flatMap((group) => group.files.map((file) => vscode.Uri.file(file.path))));
+    return createdGroups;
+}
+
+function isWithinWorkspace(filePath: string, workspaceRoot: string): boolean {
+    const relativePath = path.relative(workspaceRoot, filePath);
+    return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+}
+
+function collectOpenEditorFiles(): GroupFile[] {
+    const files: GroupFile[] = [];
+
+    for (const tabGroup of vscode.window.tabGroups.all) {
+        for (const tab of tabGroup.tabs) {
+            const tabInput = tab.input;
+            if (!tabInput || typeof tabInput !== 'object' || !('uri' in tabInput)) {
+                continue;
+            }
+
+            const tabUri = (tabInput as { uri: vscode.Uri }).uri;
+            if (tabUri.scheme !== 'file') {
+                continue;
+            }
+
+            files.push(createFileGroupEntry(tabUri.fsPath));
+        }
+    }
+
+    return dedupeGroupFiles(files);
+}
+
+function runGitCommand(args: string[], cwd: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        execFile('git', args, { cwd, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+
+            resolve(stdout);
+        });
+    });
+}
+
+async function readNullSeparatedGitPaths(args: string[], cwd: string): Promise<string[]> {
+    const stdout = await runGitCommand(args, cwd);
+    return stdout
+        .split('\0')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+}
+
+async function collectGitChangedFiles(): Promise<GroupFile[] | undefined> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+        return [];
+    }
+
+    const workspaceRoot = workspaceFolder.uri.fsPath;
+
+    let repositoryRoot: string;
+    try {
+        repositoryRoot = (await runGitCommand(['rev-parse', '--show-toplevel'], workspaceRoot)).trim();
+    } catch {
+        return undefined;
+    }
+
+    let diffPaths: string[];
+    try {
+        diffPaths = await readNullSeparatedGitPaths(['diff', '--name-only', '--diff-filter=ACMR', '-z', 'HEAD', '--'], repositoryRoot);
+    } catch {
+        const [stagedPaths, unstagedPaths] = await Promise.all([
+            readNullSeparatedGitPaths(['diff', '--name-only', '--diff-filter=ACMR', '-z', '--cached', '--'], repositoryRoot).catch(() => []),
+            readNullSeparatedGitPaths(['diff', '--name-only', '--diff-filter=ACMR', '-z', '--'], repositoryRoot).catch(() => [])
+        ]);
+        diffPaths = [...stagedPaths, ...unstagedPaths];
+    }
+
+    const untrackedPaths = await readNullSeparatedGitPaths(['ls-files', '--others', '--exclude-standard', '-z', '--'], repositoryRoot).catch(() => []);
+    const allPaths = [...new Set([...diffPaths, ...untrackedPaths])];
+
+    return dedupeGroupFiles(
+        allPaths
+            .map((relativePath) => path.resolve(repositoryRoot, relativePath))
+            .filter((filePath) => isWithinWorkspace(filePath, workspaceRoot))
+            .map((filePath) => createFileGroupEntry(filePath))
+    );
+}
+
+async function createPresetGroup(options: PresetGroupOptions): Promise<void> {
+    const files = dedupeGroupFiles(options.files);
+    if (files.length === 0) {
+        void vscode.window.showInformationMessage(options.emptyMessage);
+        return;
+    }
+
+    const name = await vscode.window.showInputBox({
+        prompt: options.prompt,
+        value: options.defaultName,
+        ignoreFocusOut: true
+    });
+
+    if (!name || name.trim().length === 0) {
+        return;
+    }
+
+    const groups = getAllStoredGroups();
+    const newGroup: FileGroup = {
+        id: generateId(),
+        name: name.trim(),
+        icon: options.icon,
+        color: options.color,
+        shortDescription: options.shortDescription,
+        files,
+        order: groups.length,
+        parentId: undefined,
+        createdBy: CURRENT_USERNAME,
+        collapsed: false
+    };
+
+    await storageService.createGroup(newGroup);
+    fileGroupsProvider.refresh();
+    fileDecorationProvider.refresh(files.map((file) => vscode.Uri.file(file.path)));
+
+    try {
+        await treeView.reveal(new FileGroupTreeItem('group', newGroup), {
+            focus: true,
+            select: true,
+            expand: true
+        });
+    } catch {
+        // The tree can refresh asynchronously; failing to reveal should not block group creation.
+    }
+
+    void vscode.window.showInformationMessage(
+        t('preset.created', {
+            name: newGroup.name,
+            count: files.length,
+            fileLabel: files.length === 1 ? t('noun.file.one') : t('noun.file.other')
+        })
+    );
+}
 
 /**
  * Check for missing files and prompt user to clean up
@@ -32,12 +329,12 @@ async function checkForMissingFiles(): Promise<void> {
 
     if (missingCount > 0) {
         const action = await vscode.window.showWarningMessage(
-            `Found ${missingCount} missing file(s) in your groups. Would you like to clean them up?`,
-            'Clean Up',
-            'Ignore'
+            t('missingFiles.startup.prompt', { count: missingCount }),
+            t('action.cleanUp'),
+            t('action.ignore')
         );
 
-        if (action === 'Clean Up') {
+        if (action === t('action.cleanUp')) {
             await vscode.commands.executeCommand('fileGroups.cleanupMissingFiles');
         }
     }
@@ -74,6 +371,17 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(treeView);
+
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration((event) => {
+            if (!event.affectsConfiguration(CODEGROUP_LANGUAGE_CONFIGURATION_KEY)) {
+                return;
+            }
+
+            fileGroupsProvider.refresh();
+            GroupEditorPanel.refreshAll();
+        })
+    );
 
     context.subscriptions.push(
         treeView.onDidCollapseElement((event) => {
@@ -176,13 +484,13 @@ async function pickGroupForCommand(placeHolder: string, initialItem?: FileGroupT
 
     const groups = storageService.getGroups();
     if (groups.length === 0) {
-        vscode.window.showInformationMessage('No groups available');
+        vscode.window.showInformationMessage(t('group.select.none'));
         return undefined;
     }
 
     const groupItems = groups.map(g => ({
         label: `$(${g.icon || 'folder'}) ${g.name}`,
-        description: g.parentId ? '(nested)' : '',
+        description: g.parentId ? t('group.select.nested') : '',
         groupId: g.id
     }));
 
@@ -198,7 +506,44 @@ async function pickGroupForCommand(placeHolder: string, initialItem?: FileGroupT
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
+    type GroupedFileQuickPickItem = vscode.QuickPickItem & {
+        groupId?: string;
+        filePath?: string;
+    };
+
     // Create a new root group
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.changeLanguage', async () => {
+            const selectedLanguage = await vscode.window.showQuickPick(
+                getLanguageOptions().map((option) => ({
+                    label: option.label,
+                    description: option.description,
+                    languageId: option.id,
+                    picked: normalizeCodeGroupLanguage(vscode.workspace.getConfiguration('codegroup').get<string>('language')) === option.id
+                })),
+                {
+                    placeHolder: t('language.command.pick')
+                }
+            );
+
+            if (!selectedLanguage) {
+                return;
+            }
+
+            await vscode.workspace.getConfiguration('codegroup').update(
+                'language',
+                selectedLanguage.languageId,
+                vscode.ConfigurationTarget.Global
+            );
+
+            void vscode.window.showInformationMessage(
+                t('language.command.updated', {
+                    language: getLanguageLabel(selectedLanguage.languageId)
+                })
+            );
+        })
+    );
+
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.createGroup', async () => {
             const name = await vscode.window.showInputBox({
@@ -207,7 +552,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             });
 
             if (name) {
-                const groups = storageService.getGroups();
+                const groups = getAllStoredGroups();
                 const newGroup: FileGroup = {
                     id: generateId(),
                     name,
@@ -225,6 +570,366 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
+    // Create a group from open editors
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.createGroupFromOpenEditors', async () => {
+            await createPresetGroup({
+                defaultName: t('preset.openEditors.name'),
+                prompt: t('preset.openEditors.prompt'),
+                emptyMessage: t('preset.openEditors.empty'),
+                files: collectOpenEditorFiles(),
+                icon: 'files',
+                color: 'terminal.ansiCyan',
+                shortDescription: t('preset.openEditors.summary')
+            });
+        })
+    );
+
+    // Create a group from current Git changes
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.createGroupFromGitChanges', async () => {
+            const files = await collectGitChangedFiles();
+            if (files === undefined) {
+                void vscode.window.showWarningMessage('No Git repository was detected for the current workspace folder.');
+                return;
+            }
+
+            await createPresetGroup({
+                defaultName: t('preset.gitChanges.name'),
+                prompt: t('preset.gitChanges.prompt'),
+                emptyMessage: t('preset.gitChanges.empty'),
+                files,
+                icon: 'source-control',
+                color: 'charts.orange',
+                shortDescription: t('preset.gitChanges.summary')
+            });
+        })
+    );
+
+    // Create smart groups from workspace files
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.createSmartGroups', async () => {
+            const workspaceRoot = getWorkspaceRoot();
+            if (!workspaceRoot) {
+                void vscode.window.showWarningMessage(t('smart.noWorkspace'));
+                return;
+            }
+
+            const strategy = await vscode.window.showQuickPick([
+                {
+                    label: t('smart.strategy.project.label'),
+                    description: t('smart.strategy.project.description'),
+                    strategyId: 'project-areas' as const
+                },
+                {
+                    label: t('smart.strategy.languages.label'),
+                    description: t('smart.strategy.languages.description'),
+                    strategyId: 'languages' as const
+                }
+            ], {
+                placeHolder: t('smart.strategy.pick')
+            });
+
+            if (!strategy) {
+                return;
+            }
+
+            const workspaceFiles = await collectWorkspaceFilesForSmartGroups();
+            const suggestions = suggestSmartGroups(strategy.strategyId, workspaceFiles, workspaceRoot)
+                .map((suggestion) => {
+                    const localizedText = getLocalizedSmartGroupText(suggestion.id);
+                    return {
+                        ...suggestion,
+                        name: localizedText.name,
+                        shortDescription: localizedText.summary
+                    };
+                });
+
+            if (suggestions.length === 0) {
+                void vscode.window.showInformationMessage(t('smart.noSuggestions'));
+                return;
+            }
+
+            const selectedSuggestions = await vscode.window.showQuickPick(
+                suggestions.map((suggestion) => ({
+                    label: `$(${suggestion.icon}) ${suggestion.name}`,
+                    description: countLabel(suggestion.files.length, 'noun.file.one', 'noun.file.other'),
+                    detail: suggestion.shortDescription,
+                    suggestion,
+                    picked: true
+                })),
+                {
+                    canPickMany: true,
+                    placeHolder: t('smart.selection.pick')
+                }
+            );
+
+            if (!selectedSuggestions || selectedSuggestions.length === 0) {
+                return;
+            }
+
+            const createdGroups = await createSuggestedGroups(selectedSuggestions.map((item) => item.suggestion));
+            if (createdGroups.length === 0) {
+                return;
+            }
+
+            try {
+                await treeView.reveal(new FileGroupTreeItem('group', createdGroups[0]), {
+                    focus: true,
+                    select: true,
+                    expand: true
+                });
+            } catch {
+                // Ignore reveal timing issues after refresh.
+            }
+
+            void vscode.window.showInformationMessage(
+                t('smart.created', {
+                    count: createdGroups.length,
+                    smartGroupLabel: createdGroups.length === 1 ? t('noun.smartGroup.one') : t('noun.smartGroup.other')
+                })
+            );
+        })
+    );
+
+    // Export a group as shareable JSON
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.exportGroupShare', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand(t('share.export.pick'), item);
+            if (!targetGroup) {
+                return;
+            }
+
+            const payload = buildSharedGroupPayload(targetGroup.id, storageService.getGroups(), getWorkspaceRoot());
+            const json = JSON.stringify(payload, null, 2);
+
+            await vscode.env.clipboard.writeText(json);
+            const action = await vscode.window.showInformationMessage(
+                t('share.export.copied', { name: targetGroup.name }),
+                t('action.openJson')
+            );
+
+            if (action === t('action.openJson')) {
+                const document = await vscode.workspace.openTextDocument({
+                    language: 'json',
+                    content: json
+                });
+                await vscode.window.showTextDocument(document, { preview: false });
+            }
+        })
+    );
+
+    // Import a shared group from clipboard or file
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.importSharedGroup', async () => {
+            const source = await vscode.window.showQuickPick([
+                {
+                    label: t('share.import.source.clipboard.label'),
+                    description: t('share.import.source.clipboard.description'),
+                    sourceId: 'clipboard' as const
+                },
+                {
+                    label: t('share.import.source.file.label'),
+                    description: t('share.import.source.file.description'),
+                    sourceId: 'file' as const
+                }
+            ], {
+                placeHolder: t('share.import.source.pick')
+            });
+
+            if (!source) {
+                return;
+            }
+
+            let rawContent: string | undefined;
+            if (source.sourceId === 'clipboard') {
+                rawContent = await vscode.env.clipboard.readText();
+            } else {
+                const selectedFile = await vscode.window.showOpenDialog({
+                    canSelectFiles: true,
+                    canSelectMany: false,
+                    filters: {
+                        JSON: ['json']
+                    },
+                    openLabel: t('share.import.openLabel')
+                });
+
+                if (!selectedFile || selectedFile.length === 0) {
+                    return;
+                }
+
+                rawContent = Buffer.from(await vscode.workspace.fs.readFile(selectedFile[0])).toString('utf8');
+            }
+
+            if (!rawContent || rawContent.trim().length === 0) {
+                void vscode.window.showWarningMessage(t('share.import.empty'));
+                return;
+            }
+
+            let parsedPayload: unknown;
+            try {
+                parsedPayload = JSON.parse(rawContent);
+            } catch {
+                void vscode.window.showErrorMessage(t('share.import.invalidJson'));
+                return;
+            }
+
+            if (!isSharedGroupPayload(parsedPayload)) {
+                void vscode.window.showErrorMessage(t('share.import.invalidPayload'));
+                return;
+            }
+
+            const scopeSelection = await vscode.window.showQuickPick([
+                {
+                    label: t('share.import.scope.local.label'),
+                    description: t('share.import.scope.local.description'),
+                    scopeId: 'local' as const
+                },
+                {
+                    label: t('share.import.scope.global.label'),
+                    description: t('share.import.scope.global.description'),
+                    scopeId: 'global' as const
+                }
+            ], {
+                placeHolder: t('share.import.scope.pick')
+            });
+
+            if (!scopeSelection) {
+                return;
+            }
+
+            const importedGroups = importSharedGroupPayload(
+                parsedPayload,
+                getWorkspaceRoot(),
+                scopeSelection.scopeId,
+                generateId,
+                getAllStoredGroups().length,
+                CURRENT_USERNAME
+            );
+
+            if (importedGroups.length === 0) {
+                void vscode.window.showWarningMessage(t('share.import.noGroups'));
+                return;
+            }
+
+            await storageService.saveGroups([...getAllStoredGroups(), ...importedGroups]);
+            fileGroupsProvider.refresh();
+            fileDecorationProvider.refresh(importedGroups.flatMap((group) => group.files.map((file) => vscode.Uri.file(file.path))));
+
+            try {
+                await treeView.reveal(new FileGroupTreeItem('group', importedGroups[0]), {
+                    focus: true,
+                    select: true,
+                    expand: true
+                });
+            } catch {
+                // Ignore reveal timing issues after refresh.
+            }
+
+            void vscode.window.showInformationMessage(
+                t('share.import.created', {
+                    count: importedGroups.length,
+                    groupLabel: importedGroups.length === 1 ? t('noun.group.one') : t('noun.group.other')
+                })
+            );
+        })
+    );
+
+    // Quick open any grouped file from one searchable list
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.quickOpen', async () => {
+            const groups = storageService.getGroups();
+            if (groups.length === 0) {
+                const action = await vscode.window.showInformationMessage(
+                    t('quickOpen.noGroups.message'),
+                    t('action.createGroup'),
+                    t('action.fromOpenEditors'),
+                    t('action.fromGitChanges')
+                );
+
+                if (action === t('action.createGroup')) {
+                    await vscode.commands.executeCommand('fileGroups.createGroup');
+                } else if (action === t('action.fromOpenEditors')) {
+                    await vscode.commands.executeCommand('fileGroups.createGroupFromOpenEditors');
+                } else if (action === t('action.fromGitChanges')) {
+                    await vscode.commands.executeCommand('fileGroups.createGroupFromGitChanges');
+                }
+                return;
+            }
+
+            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            const { recentItems, otherItems } = buildGroupedFileQuickOpenSections(
+                groups,
+                getRecentGroupFileKeys(context),
+                workspaceRoot
+            );
+
+            if (recentItems.length === 0 && otherItems.length === 0) {
+                const action = await vscode.window.showInformationMessage(
+                    t('quickOpen.noFiles.message'),
+                    t('action.fromOpenEditors'),
+                    t('action.fromGitChanges')
+                );
+
+                if (action === t('action.fromOpenEditors')) {
+                    await vscode.commands.executeCommand('fileGroups.createGroupFromOpenEditors');
+                } else if (action === t('action.fromGitChanges')) {
+                    await vscode.commands.executeCommand('fileGroups.createGroupFromGitChanges');
+                }
+                return;
+            }
+
+            const toQuickPickItem = (item: typeof recentItems[number]): GroupedFileQuickPickItem => ({
+                label: item.fileName,
+                description: item.groupIsGlobal ? `${item.groupTrail} • global` : item.groupTrail,
+                detail: item.detail,
+                groupId: item.groupId,
+                filePath: item.filePath
+            });
+
+            const quickPickItems: GroupedFileQuickPickItem[] = [];
+
+            if (recentItems.length > 0) {
+                quickPickItems.push({
+                    label: t('quickOpen.separator.recent'),
+                    kind: vscode.QuickPickItemKind.Separator
+                });
+                quickPickItems.push(...recentItems.map(toQuickPickItem));
+            }
+
+            if (otherItems.length > 0) {
+                quickPickItems.push({
+                    label: recentItems.length > 0 ? t('quickOpen.separator.all') : t('quickOpen.separator.grouped'),
+                    kind: vscode.QuickPickItemKind.Separator
+                });
+                quickPickItems.push(...otherItems.map(toQuickPickItem));
+            }
+
+            const selection = await vscode.window.showQuickPick(quickPickItems, {
+                placeHolder: t('quickOpen.placeholder'),
+                matchOnDescription: true,
+                matchOnDetail: true
+            });
+
+            if (!selection?.groupId || !selection.filePath) {
+                return;
+            }
+
+            await openGroupedFile(context, selection.groupId, selection.filePath);
+        })
+    );
+
+    // Open a grouped file and track it for quick access recents
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.openGroupedFile', async (args?: { groupId?: string; filePath?: string }) => {
+            if (!args?.groupId || !args.filePath) {
+                return;
+            }
+
+            await openGroupedFile(context, args.groupId, args.filePath);
+        })
+    );
+
     // Create a child group under an existing group
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.createSubgroup', async (item: FileGroupTreeItem) => {
@@ -235,7 +940,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 });
 
                 if (name) {
-                    const groups = storageService.getGroups();
+                    const groups = getAllStoredGroups();
                     const newGroup: FileGroup = {
                         id: generateId(),
                         name,
@@ -250,6 +955,123 @@ function registerCommands(context: vscode.ExtensionContext) {
                     await storageService.createGroup(newGroup);
                     fileGroupsProvider.refresh();
                 }
+            }
+        })
+    );
+
+    // Open group editor
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.openGroupEditor', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand(t('groupActions.editor.label').replace(/^\$\([^)]+\)\s*/, ''), item);
+            if (!targetGroup) {
+                return;
+            }
+
+            GroupEditorPanel.show(context, storageService, fileGroupsProvider, fileDecorationProvider, targetGroup.id);
+        })
+    );
+
+    // Consolidated group actions hub to keep the context menu focused
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.groupActions', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand('Select group for more actions', item);
+            if (!targetGroup) {
+                return;
+            }
+
+            const targetItem = new FileGroupTreeItem('group', targetGroup);
+            const selectedAction = await vscode.window.showQuickPick([
+                {
+                    label: t('groupActions.editor.label'),
+                    description: t('groupActions.editor.description'),
+                    actionId: 'editor'
+                },
+                {
+                    label: t('groupActions.subgroup.label'),
+                    description: t('groupActions.subgroup.description'),
+                    actionId: 'subgroup'
+                },
+                {
+                    label: t('groupActions.rename.label', { name: targetGroup.name }),
+                    description: t('groupActions.rename.description'),
+                    actionId: 'rename'
+                },
+                {
+                    label: targetGroup.pinned ? t('groupActions.unpin.label') : t('groupActions.pin.label'),
+                    description: targetGroup.pinned ? t('groupActions.unpin.description') : t('groupActions.pin.description'),
+                    actionId: targetGroup.pinned ? 'unpin' : 'pin'
+                },
+                {
+                    label: t('groupActions.sort.label'),
+                    description: t('groupActions.sort.description'),
+                    actionId: 'sort'
+                },
+                {
+                    label: t('groupActions.duplicate.label'),
+                    description: t('groupActions.duplicate.description'),
+                    actionId: 'duplicate'
+                },
+                {
+                    label: t('groupActions.export.label'),
+                    description: t('groupActions.export.description'),
+                    actionId: 'export'
+                },
+                ...(targetGroup.parentId ? [{
+                    label: t('groupActions.moveRoot.label'),
+                    description: t('groupActions.moveRoot.description'),
+                    actionId: 'root'
+                }] : []),
+                ...(!targetGroup.isGlobal ? [{
+                    label: t('groupActions.toGlobal.label'),
+                    description: t('groupActions.toGlobal.description'),
+                    actionId: 'to-global'
+                }] : [{
+                    label: t('groupActions.toLocal.label'),
+                    description: t('groupActions.toLocal.description'),
+                    actionId: 'to-local'
+                }])
+            ], {
+                placeHolder: t('groupActions.pick', { name: targetGroup.name })
+            });
+
+            if (!selectedAction) {
+                return;
+            }
+
+            switch (selectedAction.actionId) {
+                case 'editor':
+                    await vscode.commands.executeCommand('fileGroups.openGroupEditor', targetItem);
+                    return;
+                case 'subgroup':
+                    await vscode.commands.executeCommand('fileGroups.createSubgroup', targetItem);
+                    return;
+                case 'rename':
+                    await vscode.commands.executeCommand('fileGroups.renameGroup', targetItem);
+                    return;
+                case 'pin':
+                    await vscode.commands.executeCommand('fileGroups.pinGroup', targetItem);
+                    return;
+                case 'unpin':
+                    await vscode.commands.executeCommand('fileGroups.unpinGroup', targetItem);
+                    return;
+                case 'sort':
+                    await vscode.commands.executeCommand('fileGroups.sortFiles', targetItem);
+                    return;
+                case 'duplicate':
+                    await vscode.commands.executeCommand('fileGroups.duplicateGroup', targetItem);
+                    return;
+                case 'export':
+                    await vscode.commands.executeCommand('fileGroups.exportGroupShare', targetItem);
+                    return;
+                case 'root':
+                    await vscode.commands.executeCommand('fileGroups.moveToRoot', targetItem);
+                    return;
+                case 'to-global':
+                    await vscode.commands.executeCommand('fileGroups.moveToGlobal', targetItem);
+                    return;
+                case 'to-local':
+                    await vscode.commands.executeCommand('fileGroups.moveToLocal', targetItem);
+                    return;
             }
         })
     );
@@ -648,7 +1470,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
                     files.push({
                         path: fileUri.fsPath,
-                        name: fileUri.fsPath.split(/[/\\]/).pop() || 'unknown',
+                        name: getFileName(fileUri.fsPath),
                         isDirectory
                     });
                 }
@@ -957,7 +1779,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                         badgeText: item.group.badgeText,
                         files: [...item.group.files], // Copy files array
                         sortOrder: item.group.sortOrder,
-                        order: storageService.getGroups().length,
+                        order: getAllStoredGroups().length,
                         parentId: item.group.parentId,
                         isGlobal: false // Copies are always local by default
                     };
@@ -1003,4 +1825,4 @@ function registerCommands(context: vscode.ExtensionContext) {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }

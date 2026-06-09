@@ -1,56 +1,41 @@
+const esbuild = require('esbuild');
+
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
+const buildOptions = {
+	entryPoints: ['src/extension.ts'],
+	bundle: true,
+	outfile: 'out/extension.js',
+	platform: 'node',
+	format: 'cjs',
+	target: ['node16'],
+	minify: production,
+	sourcemap: production ? false : 'external',
+	external: ['vscode'],
+	logLevel: 'info'
+};
+
 async function main() {
-	console.log('[watch] build started');
-
-	const result = await Bun.build({
-		entrypoints: ['src/extension.ts'],
-		outdir: 'out',
-		target: 'node',
-		format: 'cjs',
-		minify: production,
-		sourcemap: production ? 'none' : 'external',
-		external: ['vscode'],
-		naming: {
-			entry: 'extension.js'
-		}
-	});
-
-	if (!result.success) {
-		console.error('[watch] build failed');
-		result.logs.forEach(log => {
-			console.error(`✘ [ERROR] ${log.message}`);
-		});
-		process.exit(1);
-	}
-
-	console.log('[watch] build finished');
+	console.log('[build] build started');
 
 	if (watch) {
-		console.log('[watch] watching for changes...');
-		// Bun doesn't have built-in watch mode like esbuild.context
-		// You can use Bun's --watch flag when running the script instead
-		// Or implement file watching manually
-		const fs = await import('fs');
-		const path = await import('path');
+		const context = await esbuild.context(buildOptions);
+		await context.watch();
+		console.log('[build] watching for changes...');
 
-		const watchDir = path.resolve('src');
-		const watcher = fs.watch(watchDir, { recursive: true }, async (eventType, filename) => {
-			if (filename && filename.endsWith('.ts')) {
-				console.log(`[watch] file changed: ${filename}`);
-				await main();
-			}
-		});
-
-		process.on('SIGINT', () => {
-			watcher.close();
+		process.on('SIGINT', async () => {
+			await context.dispose();
 			process.exit(0);
 		});
+		return;
 	}
+
+	await esbuild.build(buildOptions);
+	console.log('[build] build finished');
 }
 
-main().catch(e => {
-	console.error(e);
+main().catch(error => {
+	console.error(error);
 	process.exit(1);
 });

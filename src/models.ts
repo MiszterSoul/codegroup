@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { countLabel, t } from './i18n';
 import { NORMALIZED_CURRENT_USERNAME, normalizeUsername } from './userInfo';
 
 /**
@@ -92,6 +93,11 @@ export interface FileGroup {
     /** Whether this is a global group (available in all projects) */
     isGlobal?: boolean;
 }
+
+export type OpenGroupedFileCommandArgs = {
+    groupId: string;
+    filePath: string;
+};
 
 /**
  * File format for .vscode/file-groups.json
@@ -245,9 +251,15 @@ export const GROUP_COLORS: { id: string; label: string }[] = [
     { id: 'charts.green', label: '🟢 Green' },
     { id: 'charts.blue', label: '🔵 Blue' },
     { id: 'charts.purple', label: '🟣 Purple' },
+    { id: 'terminal.ansiRed', label: '❤️ Accent Red' },
+    { id: 'terminal.ansiGreen', label: '💚 Accent Green' },
+    { id: 'terminal.ansiBlue', label: '💙 Accent Blue' },
+    { id: 'terminal.ansiYellow', label: '💛 Accent Yellow' },
     { id: 'terminal.ansiCyan', label: '🩵 Cyan' },
     { id: 'terminal.ansiMagenta', label: '🩷 Magenta' },
     { id: 'terminal.ansiWhite', label: '⚪ White' },
+    { id: 'editorInfo.foreground', label: 'ℹ️ Info' },
+    { id: 'editorWarning.foreground', label: '⚠️ Warning' },
     { id: 'custom', label: '🎨 Custom Hex Color...' },
 ];
 
@@ -289,7 +301,18 @@ export function getThemeColorForHex(hexColor: string): string {
 /**
  * Tree item types for context value
  */
-export type TreeItemType = 'group' | 'file' | 'section';
+export type TreeItemType = 'group' | 'file' | 'section' | 'action';
+
+export type TreeSectionKind = 'global' | 'actions';
+
+export type ActionTreeItemDefinition = {
+    id: string;
+    label: string;
+    description?: string;
+    detail?: string;
+    iconId: string;
+    command: vscode.Command;
+};
 
 /**
  * Tree item representing either a group, file, or section header
@@ -302,13 +325,19 @@ export class FileGroupTreeItem extends vscode.TreeItem {
         public readonly hasChildren: boolean = false,
         public readonly childCount: number = 0,
         public readonly totalItemCount: number = 0,
-        public readonly allFiles: GroupFile[] = []
+        public readonly allFiles: GroupFile[] = [],
+        public readonly sectionKind?: TreeSectionKind,
+        public readonly actionDefinition?: ActionTreeItemDefinition
     ) {
         super(
-            itemType === 'section' ? 'Global Groups' : (file ? file.name : group!.name),
+            itemType === 'section'
+                ? (sectionKind === 'actions' ? t('tree.section.quickActions') : t('tree.section.globalGroups'))
+                : (itemType === 'action'
+                    ? actionDefinition?.label ?? t('tree.action.default')
+                    : (file ? file.name : group!.name)),
             itemType === 'section'
                 ? vscode.TreeItemCollapsibleState.Expanded
-                : (file
+                : ((file || itemType === 'action')
                     ? vscode.TreeItemCollapsibleState.None
                     : (group!.collapsed
                         ? vscode.TreeItemCollapsibleState.Collapsed
@@ -317,10 +346,19 @@ export class FileGroupTreeItem extends vscode.TreeItem {
 
         // Set unique ID for state preservation during refresh
         if (itemType === 'section') {
-            this.id = 'global-groups-section';
-            this.contextValue = 'section';
-            this.iconPath = new vscode.ThemeIcon('globe');
-            this.description = hasChildren ? `${totalItemCount} ${totalItemCount === 1 ? 'group' : 'groups'}` : undefined;
+            this.id = sectionKind === 'actions' ? 'quick-actions-section' : 'global-groups-section';
+            this.contextValue = sectionKind === 'actions' ? 'quickActionsSection' : 'globalSection';
+            this.iconPath = new vscode.ThemeIcon(sectionKind === 'actions' ? 'sparkle' : 'globe');
+            this.description = sectionKind === 'actions'
+                ? t('tree.section.quickActions.description')
+                : (hasChildren ? countLabel(totalItemCount, 'noun.group.one', 'noun.group.other') : undefined);
+        } else if (itemType === 'action') {
+            this.id = `action:${actionDefinition?.id ?? 'unknown'}`;
+            this.contextValue = 'action';
+            this.iconPath = new vscode.ThemeIcon(actionDefinition?.iconId ?? 'sparkle');
+            this.description = actionDefinition?.description;
+            this.tooltip = actionDefinition?.detail ?? actionDefinition?.description ?? actionDefinition?.label ?? t('tree.action.default');
+            this.command = actionDefinition?.command;
         } else if (file) {
             this.id = `${group!.id}:file:${file.path}`;
         } else {
@@ -331,6 +369,8 @@ export class FileGroupTreeItem extends vscode.TreeItem {
         // Use pinned/unpinned suffix to show correct pin/unpin menu item
         // Use global prefix for global groups
         if (itemType === 'section') {
+            // Already set above
+        } else if (itemType === 'action') {
             // Already set above
         } else if (file) {
             this.contextValue = 'file';
@@ -353,16 +393,19 @@ export class FileGroupTreeItem extends vscode.TreeItem {
                 this.iconPath = vscode.ThemeIcon.Folder;
                 this.command = {
                     command: 'revealInExplorer',
-                    title: 'Reveal in Explorer',
+                    title: t('tree.command.reveal'),
                     arguments: [this.resourceUri]
                 };
             } else {
                 // File item - let VS Code handle icon via resourceUri
                 // Don't set iconPath to let resourceUri determine the icon
                 this.command = {
-                    command: 'vscode.open',
-                    title: 'Open File',
-                    arguments: [this.resourceUri]
+                    command: 'fileGroups.openGroupedFile',
+                    title: t('tree.command.open'),
+                    arguments: [{
+                        groupId: group.id,
+                        filePath: file.path
+                    }]
                 };
             }
         } else if (group && itemType !== 'section') {
@@ -374,13 +417,13 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             const statsParts: string[] = [];
 
             if (childCount > 0) {
-                statsParts.push(`${childCount} ${childCount === 1 ? 'child' : 'children'}`);
+                statsParts.push(countLabel(childCount, 'noun.child.one', 'noun.child.other'));
             }
             if (fileCount > 0) {
-                statsParts.push(`${fileCount} ${fileCount === 1 ? 'file' : 'files'}`);
+                statsParts.push(countLabel(fileCount, 'noun.file.one', 'noun.file.other'));
             }
             if (folderCount > 0) {
-                statsParts.push(`${folderCount} ${folderCount === 1 ? 'folder' : 'folders'}`);
+                statsParts.push(countLabel(folderCount, 'noun.folder.one', 'noun.folder.other'));
             }
 
             // If showing total from children too
@@ -416,7 +459,7 @@ export class FileGroupTreeItem extends vscode.TreeItem {
                 descriptionParts.push(`by ${group.createdBy}`);
             }
 
-            this.description = descriptionParts.length > 0 ? descriptionParts.join(' • ') : 'empty';
+            this.description = descriptionParts.length > 0 ? descriptionParts.join(' • ') : t('group.description.empty');
 
             // Calculate file stats (lines of code, last modified)
             const filesToCheck = allFiles.length > 0 ? allFiles : group.files;
@@ -425,7 +468,7 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             const tooltipLines: string[] = [`**${group.name}**`];
 
             if (group.isGlobal) {
-                tooltipLines.push('', `🌐 _Global Group (available in all projects)_`);
+                tooltipLines.push('', `🌐 _${t('group.tooltip.global')}_`);
             }
 
             if (group.shortDescription) {
@@ -433,18 +476,18 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             }
 
             // Statistics section
-            tooltipLines.push('', '---', '**📊 Statistics**');
-            tooltipLines.push(`- Files: ${fileCount}`);
-            tooltipLines.push(`- Folders: ${folderCount}`);
+            tooltipLines.push('', '---', `**📊 ${t('group.tooltip.statistics')}**`);
+            tooltipLines.push(`- ${t('group.tooltip.files')}: ${fileCount}`);
+            tooltipLines.push(`- ${t('group.tooltip.folders')}: ${folderCount}`);
             if (childCount > 0) {
-                tooltipLines.push(`- Child groups: ${childCount}`);
+                tooltipLines.push(`- ${t('group.tooltip.children')}: ${childCount}`);
                 if (totalItemCount > group.files.length) {
-                    tooltipLines.push(`- Total items (incl. children): ${totalItemCount}`);
+                    tooltipLines.push(`- ${t('group.tooltip.totalItems')}: ${totalItemCount}`);
                 }
             }
-            tooltipLines.push(`- Lines of code: ${totalLines.toLocaleString()}`);
+            tooltipLines.push(`- ${t('group.tooltip.linesOfCode')}: ${totalLines.toLocaleString()}`);
             if (lastModified) {
-                tooltipLines.push(`- Last modified: ${lastModified.toLocaleString()}`);
+                tooltipLines.push(`- ${t('group.tooltip.lastModified')}: ${lastModified.toLocaleString()}`);
             }
 
             if (group.details) {
@@ -453,9 +496,9 @@ export class FileGroupTreeItem extends vscode.TreeItem {
 
             if (group.createdBy) {
                 if (createdByDifferent) {
-                    tooltipLines.push('', `Created by **${group.createdBy}**`);
+                    tooltipLines.push('', t('group.tooltip.createdBy', { name: `**${group.createdBy}**` }));
                 } else {
-                    tooltipLines.push('', `Created by **${group.createdBy}** (you)`);
+                    tooltipLines.push('', t('group.tooltip.createdByYou', { name: `**${group.createdBy}**` }));
                 }
             }
 

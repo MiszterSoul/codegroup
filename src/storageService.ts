@@ -19,6 +19,22 @@ export class StorageService {
         this.setupGlobalFileWatcher();
     }
 
+    private getStoredLocalGroups(): FileGroup[] {
+        const localGroups = this.context.workspaceState.get<FileGroup[]>(STORAGE_KEY, []);
+        return localGroups.map((g, index) => ({
+            ...g,
+            order: g.order ?? index,
+            parentId: g.parentId ?? undefined,
+            shortDescription: g.shortDescription ?? undefined,
+            details: g.details ?? undefined,
+            createdBy: g.createdBy ?? undefined,
+            collapsed: g.collapsed ?? false,
+            pinned: g.pinned ?? false,
+            badgeText: g.badgeText ?? undefined,
+            isGlobal: false
+        }));
+    }
+
     private setupFileWatcher(): void {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders && workspaceFolders.length > 0) {
@@ -159,20 +175,7 @@ export class StorageService {
      * Load groups from file if available, otherwise from workspace state
      */
     getGroups(): FileGroup[] {
-        // Get local groups
-        const localGroups = this.context.workspaceState.get<FileGroup[]>(STORAGE_KEY, []);
-        const normalizedLocal = localGroups.map((g, index) => ({
-            ...g,
-            order: g.order ?? index,
-            parentId: g.parentId ?? undefined,
-            shortDescription: g.shortDescription ?? undefined,
-            details: g.details ?? undefined,
-            createdBy: g.createdBy ?? undefined,
-            collapsed: g.collapsed ?? false,
-            pinned: g.pinned ?? false,
-            badgeText: g.badgeText ?? undefined,
-            isGlobal: false
-        }));
+        const normalizedLocal = this.getStoredLocalGroups();
 
         // Get global groups if not hidden
         if (!this.shouldHideGlobalGroups()) {
@@ -182,6 +185,13 @@ export class StorageService {
         }
 
         return normalizedLocal;
+    }
+
+    /**
+     * Get all groups regardless of current visibility settings
+     */
+    getAllGroups(): FileGroup[] {
+        return [...this.getGlobalGroups(), ...this.getStoredLocalGroups()];
     }
 
     /**
@@ -438,7 +448,7 @@ export class StorageService {
      * Create a new group
      */
     async createGroup(group: FileGroup): Promise<void> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         groups.push(group);
         await this.saveGroups(groups);
     }
@@ -447,7 +457,7 @@ export class StorageService {
      * Update an existing group
      */
     async updateGroup(groupId: string, updates: Partial<FileGroup>): Promise<void> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         const index = groups.findIndex(g => g.id === groupId);
         if (index !== -1) {
             groups[index] = { ...groups[index], ...updates };
@@ -459,7 +469,7 @@ export class StorageService {
      * Delete a group and all its child groups
      */
     async deleteGroup(groupId: string): Promise<void> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         const idsToDelete = this.getGroupAndChildIds(groupId, groups);
         const filtered = groups.filter(g => !idsToDelete.has(g.id));
         await this.saveGroups(filtered);
@@ -484,7 +494,7 @@ export class StorageService {
      * Recursively update a group and all its children
      */
     async updateGroupRecursive(groupId: string, updates: Partial<FileGroup>): Promise<void> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         const idsToUpdate = this.getGroupAndChildIds(groupId, groups);
 
         const updatedGroups = groups.map(g =>
@@ -527,7 +537,7 @@ export class StorageService {
      * Add a file to a group
      */
     async addFileToGroup(groupId: string, file: GroupFile): Promise<boolean> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         const group = groups.find(g => g.id === groupId);
         if (group) {
             // Check if file already exists in group
@@ -544,7 +554,7 @@ export class StorageService {
      * Add multiple files to a group
      */
     async addFilesToGroup(groupId: string, files: GroupFile[]): Promise<number> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         const group = groups.find(g => g.id === groupId);
         let addedCount = 0;
         if (group) {
@@ -565,7 +575,7 @@ export class StorageService {
      * Remove a file from a group
      */
     async removeFileFromGroup(groupId: string, filePath: string): Promise<void> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         const group = groups.find(g => g.id === groupId);
         if (group) {
             group.files = group.files.filter(f => f.path !== filePath);
@@ -577,7 +587,7 @@ export class StorageService {
      * Reorder files within a group
      */
     async reorderFilesInGroup(groupId: string, draggedFilePath: string, targetFilePath: string | null): Promise<void> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         const group = groups.find(g => g.id === groupId);
         if (!group) { return; }
 
@@ -614,7 +624,7 @@ export class StorageService {
      * Reorder groups
      */
     async reorderGroups(groupIds: string[]): Promise<void> {
-        const groups = this.getGroups();
+        const groups = this.getAllGroups();
         const reordered = groupIds.map((id, index) => {
             const group = groups.find(g => g.id === id);
             if (group) {

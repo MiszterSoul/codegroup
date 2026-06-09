@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { t } from './i18n';
 import { FileGroup, FileGroupTreeItem, GroupFile } from './models';
 import { StorageService } from './storageService';
 
@@ -101,6 +102,88 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
         return element;
     }
 
+    private getQuickActionItems(): FileGroupTreeItem[] {
+        return [
+            new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
+                id: 'create-group',
+                label: t('tree.action.createGroup.label'),
+                description: t('tree.action.createGroup.description'),
+                detail: t('tree.action.createGroup.detail'),
+                iconId: 'add',
+                command: {
+                    command: 'fileGroups.createGroup',
+                    title: t('tree.action.createGroup.label')
+                }
+            }),
+            new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
+                id: 'quick-open',
+                label: t('tree.action.quickOpen.label'),
+                description: t('tree.action.quickOpen.description'),
+                detail: t('tree.action.quickOpen.detail'),
+                iconId: 'search',
+                command: {
+                    command: 'fileGroups.quickOpen',
+                    title: t('tree.action.quickOpen.label')
+                }
+            }),
+            new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
+                id: 'smart-groups',
+                label: t('tree.action.smartGroups.label'),
+                description: t('tree.action.smartGroups.description'),
+                detail: t('tree.action.smartGroups.detail'),
+                iconId: 'sparkle',
+                command: {
+                    command: 'fileGroups.createSmartGroups',
+                    title: t('tree.action.smartGroups.label')
+                }
+            }),
+            new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
+                id: 'open-editors',
+                label: t('tree.action.openEditors.label'),
+                description: t('tree.action.openEditors.description'),
+                detail: t('tree.action.openEditors.detail'),
+                iconId: 'files',
+                command: {
+                    command: 'fileGroups.createGroupFromOpenEditors',
+                    title: t('tree.action.openEditors.label')
+                }
+            }),
+            new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
+                id: 'git-changes',
+                label: t('tree.action.gitChanges.label'),
+                description: t('tree.action.gitChanges.description'),
+                detail: t('tree.action.gitChanges.detail'),
+                iconId: 'source-control',
+                command: {
+                    command: 'fileGroups.createGroupFromGitChanges',
+                    title: t('tree.action.gitChanges.label')
+                }
+            }),
+            new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
+                id: 'import-shared',
+                label: t('tree.action.importShared.label'),
+                description: t('tree.action.importShared.description'),
+                detail: t('tree.action.importShared.detail'),
+                iconId: 'cloud-download',
+                command: {
+                    command: 'fileGroups.importSharedGroup',
+                    title: t('tree.action.importShared.label')
+                }
+            }),
+            new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
+                id: 'change-language',
+                label: t('tree.action.changeLanguage.label'),
+                description: t('tree.action.changeLanguage.description'),
+                detail: t('tree.action.changeLanguage.detail'),
+                iconId: 'globe',
+                command: {
+                    command: 'fileGroups.changeLanguage',
+                    title: t('tree.action.changeLanguage.label')
+                }
+            })
+        ];
+    }
+
     getChildren(element?: FileGroupTreeItem): FileGroupTreeItem[] {
         if (!element) {
             // Root level - show local groups and global groups section
@@ -129,11 +212,17 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
             // Add Global Groups section if there are any global groups
             const globalGroups = this.storageService.getGlobalGroups().filter(g => !g.parentId);
             if (globalGroups.length > 0) {
-                items.push(new FileGroupTreeItem('section', null, undefined, true, 0, globalGroups.length, []));
+                items.push(new FileGroupTreeItem('section', null, undefined, true, 0, globalGroups.length, [], 'global'));
             }
+
+            items.push(new FileGroupTreeItem('section', null, undefined, true, 0, 0, [], 'actions'));
 
             return items;
         } else if (element.itemType === 'section') {
+            if (element.sectionKind === 'actions') {
+                return this.getQuickActionItems();
+            }
+
             // Global Groups section - return global root groups
             const globalGroups = this.storageService.getGlobalGroups().filter(g => !g.parentId);
             return globalGroups
@@ -181,13 +270,16 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
         if (element.itemType === 'section') {
             return undefined;
         }
+        if (element.itemType === 'action') {
+            return new FileGroupTreeItem('section', null, undefined, true, 0, 0, [], 'actions');
+        }
         if (element.itemType === 'file' && element.group) {
             return new FileGroupTreeItem('group', element.group);
         }
         if (element.itemType === 'group' && element.group) {
             // If this is a global group at root level, parent is the section
             if (element.group.isGlobal && !element.group.parentId) {
-                return new FileGroupTreeItem('section', null, undefined, true, 0, 0, []);
+                return new FileGroupTreeItem('section', null, undefined, true, 0, 0, [], 'global');
             }
             // Otherwise check for parent group
             if (element.group.parentId) {
@@ -222,7 +314,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
     constructor(
         private storageService: StorageService,
         private provider: FileGroupsProvider
-    ) {}
+    ) { }
 
     /**
      * Set callback to be called when files are added (for decoration refresh)
@@ -312,7 +404,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         let isGlobalSection = false;
 
         if (target) {
-            if (target.itemType === 'section') {
+            if (target.itemType === 'section' && target.sectionKind === 'global') {
                 // Dropping on Global Groups section - files/groups should become global
                 isGlobalSection = true;
             } else if (target.itemType === 'group') {

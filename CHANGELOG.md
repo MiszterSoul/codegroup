@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.3.0] - 2026-06-09
+
+### Added
+
+- **feat:** Persistent `Quick Actions` now live under the tree even when groups already exist, so create/import/smart-group flows stay visible.
+- **feat:** `Create Smart Groups` can auto-build groups by either project areas or language families.
+- **feat:** Groups can now be exported as shareable JSON and imported from clipboard or file.
+- **feat:** The Group Editor now includes one-click presets for Frontend, Backend, Scripts, Docs, and Research workflows.
+- **feat:** Expanded the built-in color palette with additional theme color options.
+- **test:** Added focused coverage for smart grouping and shared group import/export helpers.
+
+### Changed
+
+- **improvement:** Group context menus are slimmer now; advanced operations moved into a single `More Group Actions...` hub.
+- **improvement:** README and welcome content now surface smart groups and sharing flows more clearly.
+- **improvement:** Global groups remain intact during create/update/import flows even when they are hidden in the current workspace.
+
+## [1.2.0] - 2026-06-09
+
+### Added
+
+- **feat:** `Quick Open from Groups` adds a searchable picker for every grouped file, including matches on group names, notes, and paths.
+- **feat:** Recently opened CodeGroup files are tracked and surfaced at the top of Quick Open for faster repeat access.
+- **test:** Added focused coverage for quick-open grouping, recent ordering, and nested group trails.
+
+### Changed
+
+- **improvement:** Opening a grouped file from the tree now feeds the same recent-file workflow used by Quick Open.
+- **improvement:** Missing files opened from CodeGroup now offer cleanup immediately so stale entries are easier to recover from.
+- **improvement:** Build and test scripts now run on a standard Node toolchain instead of requiring Bun, which lowers setup friction for contributors.
+
 ## [1.1.2] - 2026-03-09
 
 ### Added
