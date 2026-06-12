@@ -513,7 +513,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
 
             // Don't drop a parent onto its own child (would create a cycle)
             if (this.isDescendant(targetGroup.id, draggedGroup.id)) {
-                vscode.window.showWarningMessage('Cannot move a group into its own subgroup');
+                vscode.window.showWarningMessage(t('dragDrop.moveIntoSelf'));
                 continue;
             }
 
@@ -655,7 +655,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             // Ask user to name the new global group or select existing
             const globalGroups = this.storageService.getGlobalGroups();
             const quickPickItems: vscode.QuickPickItem[] = [
-                { label: '$(add) Create New Global Group', description: 'Create a new group for these files' },
+                { label: t('dragDrop.global.createNew'), description: t('dragDrop.global.createNew.description') },
                 { label: '', kind: vscode.QuickPickItemKind.Separator }
             ];
 
@@ -668,7 +668,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             });
 
             const selection = await vscode.window.showQuickPick(quickPickItems, {
-                placeHolder: 'Add to existing global group or create new?'
+                placeHolder: t('dragDrop.global.pick')
             });
 
             if (!selection) {
@@ -680,8 +680,8 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             if (selection.label.includes('Create New')) {
                 // Create new global group
                 const name = await vscode.window.showInputBox({
-                    prompt: 'Enter global group name',
-                    placeHolder: 'My Global Group'
+                    prompt: t('dragDrop.global.name.prompt'),
+                    placeHolder: t('dragDrop.global.name.placeholder')
                 });
 
                 if (!name) {

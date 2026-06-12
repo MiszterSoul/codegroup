@@ -7,7 +7,7 @@ import { StorageService } from './storageService';
 import { FileGroupsProvider, FileGroupsDragDropController } from './fileGroupsProvider';
 import { FileGroupDecorationProvider } from './fileDecorationProvider';
 import { GroupEditorPanel } from './groupEditorPanel';
-import { CODEGROUP_LANGUAGE_CONFIGURATION_KEY, countLabel, getLanguageLabel, getLanguageOptions, getLocalizedSmartGroupText, normalizeCodeGroupLanguage, t } from './i18n';
+import { CODEGROUP_LANGUAGE_CONFIGURATION_KEY, CodeGroupLanguage, countLabel, getLanguageLabel, getLanguageOptions, getLocalizedSmartGroupText, getWorkbenchLocale, normalizeCodeGroupLanguage, t } from './i18n';
 import { buildGroupedFileQuickOpenSections, makeRecentGroupFileKey, normalizeRecentGroupFileKeys } from './quickOpen';
 import { buildSharedGroupPayload, importSharedGroupPayload, isSharedGroupPayload } from './sharedGroups';
 import { SmartGroupSuggestion, suggestSmartGroups } from './smartGroups';
@@ -36,6 +36,34 @@ function getFileName(filePath: string): string {
 
 function getWorkspaceRoot(): string | undefined {
     return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
+async function syncWorkbenchDisplayLanguage(
+    context: vscode.ExtensionContext,
+    language: CodeGroupLanguage
+): Promise<'changed' | 'unchanged'> {
+    const userSettingsDir = path.resolve(context.globalStorageUri.fsPath, '..', '..');
+    const localeUri = vscode.Uri.file(path.join(userSettingsDir, 'locale.json'));
+    const nextLocale = getWorkbenchLocale(language);
+
+    let localeConfig: Record<string, unknown> = {};
+    try {
+        const existingContent = await vscode.workspace.fs.readFile(localeUri);
+        const parsed = JSON.parse(Buffer.from(existingContent).toString('utf8'));
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            localeConfig = parsed as Record<string, unknown>;
+        }
+    } catch {
+        // Missing or invalid locale.json: recreate it below.
+    }
+
+    if (localeConfig.locale === nextLocale) {
+        return 'unchanged';
+    }
+
+    localeConfig.locale = nextLocale;
+    await vscode.workspace.fs.writeFile(localeUri, Buffer.from(JSON.stringify(localeConfig, null, 2), 'utf8'));
+    return 'changed';
 }
 
 function createFileGroupEntry(filePath: string): GroupFile {
@@ -536,19 +564,40 @@ function registerCommands(context: vscode.ExtensionContext) {
                 vscode.ConfigurationTarget.Global
             );
 
-            void vscode.window.showInformationMessage(
-                t('language.command.updated', {
-                    language: getLanguageLabel(selectedLanguage.languageId)
-                })
-            );
+            try {
+                const localeResult = await syncWorkbenchDisplayLanguage(context, selectedLanguage.languageId);
+
+                if (localeResult === 'changed') {
+                    const reloadAction = await vscode.window.showInformationMessage(
+                        t('language.command.reloadPrompt', {
+                            language: getLanguageLabel(selectedLanguage.languageId)
+                        }),
+                        t('action.reloadWindow'),
+                        t('action.later')
+                    );
+
+                    if (reloadAction === t('action.reloadWindow')) {
+                        await vscode.commands.executeCommand('workbench.action.reloadWindow');
+                    }
+                    return;
+                }
+
+                void vscode.window.showInformationMessage(
+                    t('language.command.runtimeOnly', {
+                        language: getLanguageLabel(selectedLanguage.languageId)
+                    })
+                );
+            } catch {
+                void vscode.window.showWarningMessage(t('language.command.localeSyncFailed'));
+            }
         })
     );
 
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.createGroup', async () => {
             const name = await vscode.window.showInputBox({
-                prompt: 'Enter group name',
-                placeHolder: 'My Group'
+                prompt: t('group.create.prompt'),
+                placeHolder: t('group.create.placeholder')
             });
 
             if (name) {
@@ -590,7 +639,7 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.createGroupFromGitChanges', async () => {
             const files = await collectGitChangedFiles();
             if (files === undefined) {
-                void vscode.window.showWarningMessage('No Git repository was detected for the current workspace folder.');
+                void vscode.window.showWarningMessage(t('preset.gitChanges.empty'));
                 return;
             }
 
@@ -935,8 +984,8 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.createSubgroup', async (item: FileGroupTreeItem) => {
             if (item?.itemType === 'group' && item.group) {
                 const name = await vscode.window.showInputBox({
-                    prompt: `Enter child group name (under "${item.group.name}")`,
-                    placeHolder: 'My Child Group'
+                    prompt: t('group.subgroup.prompt', { name: item.group.name }),
+                    placeHolder: t('group.subgroup.placeholder')
                 });
 
                 if (name) {
@@ -1082,15 +1131,15 @@ function registerCommands(context: vscode.ExtensionContext) {
             if (item?.itemType === 'group' && item.group) {
                 const childGroups = storageService.getSubgroups(item.group.id);
                 const message = childGroups.length > 0
-                    ? `Delete group "${item.group.name}" and ${childGroups.length} child group(s)?`
-                    : `Delete group "${item.group.name}\"?`;
+                    ? t('group.delete.confirm.children', { name: item.group.name, count: childGroups.length })
+                    : t('group.delete.confirm.single', { name: item.group.name });
 
                 const confirm = await vscode.window.showWarningMessage(
                     message,
                     { modal: true },
-                    'Delete'
+                    t('action.delete')
                 );
-                if (confirm === 'Delete') {
+                if (confirm === t('action.delete')) {
                     // Get all files that will lose their decoration
                     const allFiles = storageService.getAllFilesInGroup(item.group.id);
                     const uris = allFiles.map(f => vscode.Uri.file(f.path));
@@ -1108,7 +1157,7 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.deleteGroupFromTitle', async () => {
             const groups = storageService.getGroups();
             if (groups.length === 0) {
-                vscode.window.showInformationMessage('No groups to delete');
+                vscode.window.showInformationMessage(t('group.delete.title.empty'));
                 return;
             }
 
@@ -1120,16 +1169,16 @@ function registerCommands(context: vscode.ExtensionContext) {
             }));
 
             const selected = await vscode.window.showQuickPick(groupItems, {
-                placeHolder: 'Select group to delete'
+                placeHolder: t('group.delete.title.pick')
             });
 
             if (selected) {
                 const confirm = await vscode.window.showWarningMessage(
-                    `Delete group "${selected.groupName}"?`,
+                    t('group.delete.confirm.single', { name: selected.groupName }),
                     { modal: true },
-                    'Delete'
+                    t('action.delete')
                 );
-                if (confirm === 'Delete') {
+                if (confirm === t('action.delete')) {
                     const allFiles = storageService.getAllFilesInGroup(selected.groupId);
                     const uris = allFiles.map(f => vscode.Uri.file(f.path));
 
@@ -1180,7 +1229,7 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.renameGroup', async (item: FileGroupTreeItem) => {
             if (item?.itemType === 'group' && item.group) {
                 const newName = await vscode.window.showInputBox({
-                    prompt: 'Enter new group name',
+                    prompt: t('group.rename.prompt'),
                     value: item.group.name
                 });
                 if (newName && newName !== item.group.name) {
@@ -1201,7 +1250,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 }));
 
                 const selected = await vscode.window.showQuickPick(iconItems, {
-                    placeHolder: 'Select an icon for the group'
+                    placeHolder: t('group.icon.pick')
                 });
 
                 if (selected) {
@@ -1222,7 +1271,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 }));
 
                 const selected = await vscode.window.showQuickPick(colorItems, {
-                    placeHolder: 'Select a color for the group'
+                    placeHolder: t('group.color.pick')
                 });
 
                 if (selected) {
@@ -1231,15 +1280,15 @@ function registerCommands(context: vscode.ExtensionContext) {
                     // Handle custom hex color
                     if (selected.colorId === 'custom') {
                         const hexInput = await vscode.window.showInputBox({
-                            prompt: 'Enter a hex color (e.g., #FF5733, #3498DB)',
-                            placeHolder: '#FF5733',
+                            prompt: t('group.color.hex.prompt'),
+                            placeHolder: t('group.color.hex.placeholder'),
                             value: isHexColor(item.group.color) ? item.group.color : '#',
                             validateInput: (value) => {
                                 if (!value || value === '#') {
-                                    return 'Please enter a hex color';
+                                    return t('group.color.hex.error.required');
                                 }
                                 if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
-                                    return 'Please enter a valid 6-digit hex color (e.g., #FF5733)';
+                                    return t('group.color.hex.error.invalid');
                                 }
                                 return null;
                             }
@@ -1265,14 +1314,14 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Edit short description/summary
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.editGroupSummary', async (item?: FileGroupTreeItem) => {
-            const targetGroup = await pickGroupForCommand('Select group to edit summary', item);
+            const targetGroup = await pickGroupForCommand(t('group.summary.pick'), item);
             if (!targetGroup) {
                 return;
             }
 
             const value = await vscode.window.showInputBox({
-                prompt: 'Enter a short description (shown next to the name)',
-                placeHolder: 'API endpoints, build scripts, etc.',
+                prompt: t('group.summary.prompt'),
+                placeHolder: t('group.summary.placeholder'),
                 value: targetGroup.shortDescription ?? '',
                 ignoreFocusOut: true
             });
@@ -1292,14 +1341,14 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Edit long-form description/notes
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.editGroupDetails', async (item?: FileGroupTreeItem) => {
-            const targetGroup = await pickGroupForCommand('Select group to edit description', item);
+            const targetGroup = await pickGroupForCommand(t('group.details.pick'), item);
             if (!targetGroup) {
                 return;
             }
 
             const value = await vscode.window.showInputBox({
-                prompt: 'Enter a longer description (Markdown supported)',
-                placeHolder: 'Explain why this group matters or how to use it',
+                prompt: t('group.details.prompt'),
+                placeHolder: t('group.details.placeholder'),
                 value: targetGroup.details ?? '',
                 ignoreFocusOut: true
             });
@@ -1319,7 +1368,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Pin group to top
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.pinGroup', async (item?: FileGroupTreeItem) => {
-            const targetGroup = await pickGroupForCommand('Select group to pin', item);
+            const targetGroup = await pickGroupForCommand(t('group.pin.pick'), item);
             if (!targetGroup) {
                 return;
             }
@@ -1332,7 +1381,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Unpin group
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.unpinGroup', async (item?: FileGroupTreeItem) => {
-            const targetGroup = await pickGroupForCommand('Select group to unpin', item);
+            const targetGroup = await pickGroupForCommand(t('group.unpin.pick'), item);
             if (!targetGroup) {
                 return;
             }
@@ -1345,19 +1394,19 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Set custom badge text
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.setBadgeText', async (item?: FileGroupTreeItem) => {
-            const targetGroup = await pickGroupForCommand('Select group to set badge', item);
+            const targetGroup = await pickGroupForCommand(t('group.badge.pick'), item);
             if (!targetGroup) {
                 return;
             }
 
             const value = await vscode.window.showInputBox({
-                prompt: 'Enter 1-2 characters for the file badge (leave empty for default)',
-                placeHolder: 'e.g., A, 🔥, UI',
+                prompt: t('group.badge.prompt'),
+                placeHolder: t('group.badge.placeholder'),
                 value: targetGroup.badgeText ?? '',
                 ignoreFocusOut: true,
                 validateInput: (input) => {
                     if (input.length > 2) {
-                        return 'Badge must be 1-2 characters';
+                        return t('group.badge.error.invalid');
                     }
                     return null;
                 }
@@ -1401,7 +1450,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             }
 
             if (duplicates.length === 0) {
-                vscode.window.showInformationMessage('No duplicate files found across groups.');
+                vscode.window.showInformationMessage(t('duplicates.none'));
                 return;
             }
 
@@ -1413,7 +1462,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             }));
 
             const selected = await vscode.window.showQuickPick(items, {
-                placeHolder: `Found ${duplicates.length} file(s) in multiple groups`,
+                placeHolder: t('duplicates.pick', { count: duplicates.length }),
                 canPickMany: false
             });
 
@@ -1430,10 +1479,10 @@ function registerCommands(context: vscode.ExtensionContext) {
             const groups = storageService.getGroups();
             if (groups.length === 0) {
                 const create = await vscode.window.showInformationMessage(
-                    'No groups exist. Create one first?',
-                    'Create Group'
+                    t('explorer.add.noGroups'),
+                    t('action.createGroup')
                 );
-                if (create === 'Create Group') {
+                if (create === t('action.createGroup')) {
                     await vscode.commands.executeCommand('fileGroups.createGroup');
                 }
                 return;
@@ -1453,7 +1502,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             }));
 
             const selected = await vscode.window.showQuickPick(groupItems, {
-                placeHolder: `Select group to add ${filesToAdd.length} item(s)`
+                placeHolder: t('explorer.add.pick', { count: filesToAdd.length })
             });
 
             if (selected) {
@@ -1490,7 +1539,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
 
             if (!fileUri || fileUri.scheme !== 'file') {
-                vscode.window.showWarningMessage('No file available to add');
+                vscode.window.showWarningMessage(t('editorTab.add.none'));
                 return;
             }
 
@@ -1505,7 +1554,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
 
             if (!fileUri || fileUri.scheme !== 'file') {
-                vscode.window.showWarningMessage('No file available');
+                vscode.window.showWarningMessage(t('gotoGroup.none'));
                 return;
             }
 
@@ -1521,7 +1570,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             }
 
             if (groupsWithFile.length === 0) {
-                vscode.window.showInformationMessage('This file is not in any CodeGroup');
+                vscode.window.showInformationMessage(t('gotoGroup.fileNotGrouped'));
                 return;
             }
 
@@ -1541,7 +1590,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             }));
 
             const selected = await vscode.window.showQuickPick(groupItems, {
-                placeHolder: `This file is in ${groupsWithFile.length} groups. Select one to reveal:`
+                placeHolder: t('gotoGroup.pick', { count: groupsWithFile.length })
             });
 
             if (selected) {
@@ -1679,23 +1728,23 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Sort files in a group
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.sortFiles', async (item?: FileGroupTreeItem) => {
-            const group = await pickGroupForCommand('Select group to sort files', item);
+            const group = await pickGroupForCommand(t('sort.pick'), item);
             if (!group) { return; }
 
             const sortOptions = [
-                { label: '$(sort-precedence) Name (A → Z)', sortOrder: 'name-asc' },
-                { label: '$(sort-precedence) Name (Z → A)', sortOrder: 'name-desc' },
-                { label: '$(history) Date Modified (Oldest First)', sortOrder: 'date-asc' },
-                { label: '$(history) Date Modified (Newest First)', sortOrder: 'date-desc' },
-                { label: '$(file-code) File Type (Extension)', sortOrder: 'type' },
-                { label: '$(gripper) Manual (Drag & Drop)', sortOrder: 'manual' }
+                { label: `$(sort-precedence) ${t('sort.nameAsc')}`, sortOrder: 'name-asc' },
+                { label: `$(sort-precedence) ${t('sort.nameDesc')}`, sortOrder: 'name-desc' },
+                { label: `$(history) ${t('sort.dateAsc')}`, sortOrder: 'date-asc' },
+                { label: `$(history) ${t('sort.dateDesc')}`, sortOrder: 'date-desc' },
+                { label: `$(file-code) ${t('sort.type')}`, sortOrder: 'type' },
+                { label: `$(gripper) ${t('sort.manual')}`, sortOrder: 'manual' }
             ];
 
             const currentSort = group.sortOrder || 'manual';
             const currentOption = sortOptions.find(opt => opt.sortOrder === currentSort);
 
             const selection = await vscode.window.showQuickPick(sortOptions, {
-                placeHolder: `Current: ${currentOption?.label.replace(/\$\([^)]+\)\s*/, '') || 'Manual'}`,
+                placeHolder: t('sort.current', { label: currentOption?.label.replace(/\$\([^)]+\)\s*/, '') || t('sort.manual') }),
                 matchOnDescription: true
             });
 
@@ -1711,20 +1760,20 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.moveToGlobal', async (item: FileGroupTreeItem) => {
             if (item && item.itemType === 'group' && item.group && !item.group.isGlobal) {
                 const confirmMessage = item.group.parentId
-                    ? `Move "${item.group.name}" and all its contents to Global Groups? It will be available in all projects.`
-                    : `Move "${item.group.name}" and all its child groups to Global Groups? It will be available in all projects.`;
+                    ? t('move.global.confirm.nested', { name: item.group.name })
+                    : t('move.global.confirm.root', { name: item.group.name });
 
                 const confirm = await vscode.window.showWarningMessage(
                     confirmMessage,
                     { modal: true },
-                    'Move to Global'
+                    t('action.global')
                 );
 
-                if (confirm === 'Move to Global') {
+                if (confirm === t('action.global')) {
                     await storageService.updateGroupRecursive(item.group.id, { isGlobal: true });
                     await storageService.updateGroup(item.group.id, { parentId: undefined });
                     fileGroupsProvider.refresh();
-                    void vscode.window.showInformationMessage(`"${item.group.name}" moved to Global Groups`);
+                    void vscode.window.showInformationMessage(t('move.global.done', { name: item.group.name }));
                 }
             }
         })
@@ -1735,20 +1784,20 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.moveToLocal', async (item: FileGroupTreeItem) => {
             if (item && item.itemType === 'group' && item.group && item.group.isGlobal) {
                 const confirmMessage = item.group.parentId
-                    ? `Move "${item.group.name}" and all its contents to Local Groups? It will only be available in this project.`
-                    : `Move "${item.group.name}" and all its child groups to Local Groups? It will only be available in this project.`;
+                    ? t('move.local.confirm.nested', { name: item.group.name })
+                    : t('move.local.confirm.root', { name: item.group.name });
 
                 const confirm = await vscode.window.showWarningMessage(
                     confirmMessage,
                     { modal: true },
-                    'Move to Local'
+                    t('action.local')
                 );
 
-                if (confirm === 'Move to Local') {
+                if (confirm === t('action.local')) {
                     await storageService.updateGroupRecursive(item.group.id, { isGlobal: false });
                     await storageService.updateGroup(item.group.id, { parentId: undefined });
                     fileGroupsProvider.refresh();
-                    void vscode.window.showInformationMessage(`"${item.group.name}" moved to Local Groups`);
+                    void vscode.window.showInformationMessage(t('move.local.done', { name: item.group.name }));
                 }
             }
         })
@@ -1759,9 +1808,9 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.duplicateGroup', async (item: FileGroupTreeItem) => {
             if (item?.itemType === 'group' && item.group) {
                 const newName = await vscode.window.showInputBox({
-                    prompt: 'Enter name for the copy',
+                    prompt: t('duplicate.prompt'),
                     value: `${item.group.name} (Copy)`,
-                    placeHolder: 'Copy name'
+                    placeHolder: t('duplicate.placeholder')
                 });
 
                 if (newName) {
@@ -1786,7 +1835,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
                     await storageService.createGroup(copyGroup);
                     fileGroupsProvider.refresh();
-                    void vscode.window.showInformationMessage(`Created copy: "${newName}"`);
+                    void vscode.window.showInformationMessage(t('duplicate.done', { name: newName }));
                 }
             }
         })
@@ -1818,7 +1867,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 const document = await vscode.workspace.openTextDocument(globalConfigUri);
                 await vscode.window.showTextDocument(document);
             } catch (error) {
-                void vscode.window.showErrorMessage(`Failed to open global config: ${error}`);
+                void vscode.window.showErrorMessage(t('globalConfig.open.failed', { error: String(error) }));
             }
         })
     );
