@@ -36,7 +36,10 @@ function getDisplayPath(filePath: string, workspaceRoot?: string): string {
   }
 
   const relativePath = path.relative(workspaceRoot, filePath);
-  if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+  if (!relativePath
+    || relativePath === '..'
+    || relativePath.startsWith(`..${path.sep}`)
+    || path.isAbsolute(relativePath)) {
     return filePath;
   }
 
@@ -48,6 +51,10 @@ export function makeRecentGroupFileKey(groupId: string, filePath: string): strin
 }
 
 export function normalizeRecentGroupFileKeys(keys: readonly string[], limit: number = MAX_RECENT_GROUP_FILES): string[] {
+  if (limit <= 0) {
+    return [];
+  }
+
   const dedupedKeys: string[] = [];
   const seenKeys = new Set<string>();
 

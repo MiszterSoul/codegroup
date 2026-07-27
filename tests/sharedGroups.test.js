@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import * as path from 'node:path';
 import { describe, test } from 'node:test';
 import { buildSharedGroupPayload, importSharedGroupPayload, isSharedGroupPayload } from '../src/sharedGroups.ts';
 
@@ -38,6 +39,55 @@ describe('shared groups', () => {
     assert.equal(payload.groups[0]?.files[0]?.path, 'src/app.tsx');
     assert.equal(payload.groups[1]?.parentId, 'root');
     assert.equal(isSharedGroupPayload(payload), true);
+  });
+
+  test('rejects malformed and ambiguous shared payloads', () => {
+    const basePayload = {
+      version: 1,
+      source: 'codegroup',
+      exportedAt: '2026-06-09T00:00:00.000Z',
+      rootGroupId: 'root'
+    };
+
+    assert.equal(isSharedGroupPayload({ ...basePayload, groups: [null] }), false);
+    assert.equal(isSharedGroupPayload({
+      ...basePayload,
+      groups: [{ id: 'root', name: 'Root', icon: 'folder', color: '', files: 'invalid' }]
+    }), false);
+    assert.equal(isSharedGroupPayload({
+      ...basePayload,
+      groups: [
+        { id: 'root', name: 'Root', icon: 'folder', color: '', files: [] },
+        { id: 'root', name: 'Copy', icon: 'copy', color: '', files: [] }
+      ]
+    }), false);
+    assert.equal(isSharedGroupPayload({
+      ...basePayload,
+      rootGroupId: 'missing',
+      groups: [{ id: 'root', name: 'Root', icon: 'folder', color: '', files: [] }]
+    }), false);
+    assert.equal(isSharedGroupPayload({
+      ...basePayload,
+      groups: [
+        { id: 'root', name: 'Root', icon: 'folder', color: '', files: [] },
+        { id: 'a', name: 'A', icon: 'folder', color: '', parentId: 'b', files: [] },
+        { id: 'b', name: 'B', icon: 'folder', color: '', parentId: 'a', files: [] }
+      ]
+    }), false);
+  });
+
+  test('exports two-dot-prefixed workspace folders as relative paths', () => {
+    const workspaceRoot = path.resolve('repo');
+    const payload = buildSharedGroupPayload('root', [{
+      id: 'root',
+      name: 'Config',
+      icon: 'gear',
+      color: '',
+      files: [{ path: path.join(workspaceRoot, '..config', 'app.json'), name: 'app.json' }],
+      order: 0
+    }], workspaceRoot);
+
+    assert.equal(payload.groups[0]?.files[0]?.path, '..config/app.json');
   });
 
   test('imports shared groups with remapped ids and resolved paths', () => {

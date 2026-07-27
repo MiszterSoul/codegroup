@@ -1,7 +1,8 @@
+import { randomBytes } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { countLabel, getLocalizedTemplateText, t } from './i18n';
+import { countLabel, getConfiguredLanguage, getLocalizedTemplateText, t } from './i18n';
 import { FileGroup, GroupFile, GROUP_COLORS, GROUP_ICONS, isHexColor } from './models';
 import { FileGroupDecorationProvider } from './fileDecorationProvider';
 import { FileGroupsProvider } from './fileGroupsProvider';
@@ -35,7 +36,7 @@ type GroupEditorMessage =
   | { type: 'add-open-editors' }
   | { type: 'pick-files' }
   | { type: 'remove-file'; path: string }
-  | { type: 'open-file'; path: string; isDirectory: boolean }
+  | { type: 'open-file'; path: string }
   | { type: 'remove-missing-files' };
 
 const VIEW_TYPE = 'fileGroups.groupEditor';
@@ -50,14 +51,7 @@ const SORT_OPTIONS: Array<{ value: string; labelKey: Parameters<typeof t>[0] }> 
 ];
 
 function getNonce(): string {
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let nonce = '';
-
-  for (let index = 0; index < 32; index += 1) {
-    nonce += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-
-  return nonce;
+  return randomBytes(24).toString('base64url');
 }
 
 function escapeHtml(value?: string): string {
@@ -78,6 +72,54 @@ function normalizeText(value: string): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function canonicalFilePath(filePath: string): string {
+  const normalized = path.normalize(filePath);
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function parseMessage(value: unknown): GroupEditorMessage | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const message = value as Record<string, unknown>;
+  if (typeof message.type !== 'string') {
+    return undefined;
+  }
+
+  if (message.type === 'save') {
+    if (!message.payload || typeof message.payload !== 'object' || Array.isArray(message.payload)) {
+      return undefined;
+    }
+
+    const payload = message.payload as Record<string, unknown>;
+    const stringFields = ['name', 'shortDescription', 'details', 'icon', 'colorId', 'customColor', 'badgeText', 'sortOrder'] as const;
+    if (stringFields.some(field => typeof payload[field] !== 'string')
+      || typeof payload.pinned !== 'boolean'
+      || (payload.scope !== 'local' && payload.scope !== 'global')) {
+      return undefined;
+    }
+
+    return { type: 'save', payload: payload as SavePayload };
+  }
+
+  if (message.type === 'remove-file' || message.type === 'open-file') {
+    return typeof message.path === 'string'
+      ? { type: message.type, path: message.path }
+      : undefined;
+  }
+
+  if (message.type === 'change-language'
+    || message.type === 'add-active-file'
+    || message.type === 'add-open-editors'
+    || message.type === 'pick-files'
+    || message.type === 'remove-missing-files') {
+    return { type: message.type };
+  }
+
+  return undefined;
+}
+
 function fileExists(filePath: string): boolean {
   try {
     return fs.existsSync(filePath);
@@ -90,11 +132,12 @@ function dedupeFiles(files: GroupFile[]): GroupFile[] {
   const seen = new Set<string>();
 
   return files.filter((file) => {
-    if (seen.has(file.path)) {
+    const fileKey = canonicalFilePath(file.path);
+    if (seen.has(fileKey)) {
       return false;
     }
 
-    seen.add(file.path);
+    seen.add(fileKey);
     return true;
   });
 }
@@ -103,11 +146,12 @@ function dedupeUris(uris: vscode.Uri[]): vscode.Uri[] {
   const seen = new Set<string>();
 
   return uris.filter((uri) => {
-    if (seen.has(uri.fsPath)) {
+    const uriKey = canonicalFilePath(uri.fsPath);
+    if (seen.has(uriKey)) {
       return false;
     }
 
-    seen.add(uri.fsPath);
+    seen.add(uriKey);
     return true;
   });
 }
@@ -156,6 +200,7 @@ export class GroupEditorPanel {
 
   static refreshAll(): void {
     for (const panel of GroupEditorPanel.panels.values()) {
+      panel.lastStatus = undefined;
       void panel.render();
     }
   }
@@ -170,7 +215,6 @@ export class GroupEditorPanel {
     const existingPanel = GroupEditorPanel.panels.get(groupId);
     if (existingPanel) {
       existingPanel.panel.reveal(vscode.ViewColumn.Active);
-      void existingPanel.render();
       return;
     }
 
@@ -202,8 +246,16 @@ export class GroupEditorPanel {
   ) {
     this.disposables.push(
       this.panel.onDidDispose(() => this.dispose()),
-      this.panel.webview.onDidReceiveMessage((message: GroupEditorMessage) => {
-        void this.handleMessage(message);
+      this.panel.webview.onDidReceiveMessage((value: unknown) => {
+        const message = parseMessage(value);
+        if (!message) {
+          return;
+        }
+
+        void this.handleMessage(message).catch((error: unknown) => {
+          console.error('CodeGroup editor action failed:', error);
+          this.notify('error', t('editor.status.actionFailed'));
+        });
       })
     );
 
@@ -240,7 +292,7 @@ export class GroupEditorPanel {
         await this.removeFile(message.path);
         break;
       case 'open-file':
-        await this.openFile(message.path, message.isDirectory);
+        await this.openFile(message.path);
         break;
       case 'remove-missing-files':
         await this.removeMissingFiles();
@@ -267,7 +319,7 @@ export class GroupEditorPanel {
       return;
     }
 
-    const resolvedColor = this.resolveColor(payload.colorId, payload.customColor, group.color);
+    const resolvedColor = this.resolveColor(payload.colorId, payload.customColor);
     if (resolvedColor === undefined) {
       this.notify('error', t('editor.status.invalidHex'));
       return;
@@ -293,7 +345,7 @@ export class GroupEditorPanel {
       name,
       shortDescription: normalizeText(payload.shortDescription),
       details: normalizeText(payload.details),
-      icon: payload.icon,
+      icon: GROUP_ICONS.some(icon => icon.id === payload.icon) ? payload.icon : 'folder',
       color: resolvedColor,
       badgeText: badgeText.length > 0 ? badgeText : undefined,
       sortOrder,
@@ -382,12 +434,17 @@ export class GroupEditorPanel {
       return;
     }
 
-    await this.storageService.removeFileFromGroup(group.id, filePath);
+    const storedFile = group.files.find(file => canonicalFilePath(file.path) === canonicalFilePath(filePath));
+    if (!storedFile) {
+      return;
+    }
+
+    await this.storageService.removeFileFromGroup(group.id, storedFile.path);
     this.provider.refresh();
-    this.decorationProvider.refresh([vscode.Uri.file(filePath)]);
+    this.decorationProvider.refresh([vscode.Uri.file(storedFile.path)]);
     this.lastStatus = {
       level: 'info',
-      text: t('editor.status.removedFile', { name: getFileName(filePath) })
+      text: t('editor.status.removedFile', { name: getFileName(storedFile.path) })
     };
     await this.render();
   }
@@ -421,29 +478,34 @@ export class GroupEditorPanel {
     await this.render();
   }
 
-  private async openFile(filePath: string, isDirectory: boolean): Promise<void> {
-    const uri = vscode.Uri.file(filePath);
-    if (!fileExists(filePath)) {
+  private async openFile(filePath: string): Promise<void> {
+    const group = this.storageService.getGroup(this.groupId);
+    const storedFile = group?.files.find(file => canonicalFilePath(file.path) === canonicalFilePath(filePath));
+    if (!storedFile) {
+      return;
+    }
+
+    const uri = vscode.Uri.file(storedFile.path);
+    if (!fileExists(storedFile.path)) {
       this.notify('warning', t('editor.status.fileMissingOnDisk'));
       return;
     }
 
-    if (isDirectory) {
+    if (storedFile.isDirectory) {
       await vscode.commands.executeCommand('revealInExplorer', uri);
       return;
     }
 
-    const document = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(document, { preview: false });
+    await vscode.commands.executeCommand('vscode.open', uri, { preview: false });
   }
 
-  private resolveColor(colorId: string, customColor: string, currentColor: string): string | undefined {
-    if (colorId === 'custom' || isHexColor(currentColor)) {
+  private resolveColor(colorId: string, customColor: string): string | undefined {
+    if (colorId === 'custom') {
       const trimmed = customColor.trim().toUpperCase();
       return /^#[0-9A-F]{6}$/.test(trimmed) ? trimmed : undefined;
     }
 
-    return colorId;
+    return GROUP_COLORS.some(color => color.id === colorId) ? colorId : undefined;
   }
 
   private getAllGroupUris(groupId: string): vscode.Uri[] {
@@ -470,13 +532,13 @@ export class GroupEditorPanel {
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${getConfiguredLanguage()}">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${escapeHtml(t('editor.title'))}</title>
-    <style>
+    <style nonce="${nonce}">
         body {
             font-family: var(--vscode-font-family);
             background: var(--vscode-editor-background);
@@ -520,13 +582,13 @@ export class GroupEditorPanel {
       : t('editor.scope.hint.root');
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${getConfiguredLanguage()}">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${escapeHtml(t('editor.title'))}</title>
-    <style>
+    <style nonce="${nonce}">
         :root {
             color-scheme: light dark;
         }
@@ -540,6 +602,7 @@ export class GroupEditorPanel {
             padding: 24px;
             font-family: var(--vscode-font-family);
             color: var(--vscode-editor-foreground);
+            background: var(--vscode-editor-background);
             background:
                 radial-gradient(circle at top right, color-mix(in srgb, var(--vscode-focusBorder) 20%, transparent) 0, transparent 36%),
                 linear-gradient(180deg, var(--vscode-editor-background), color-mix(in srgb, var(--vscode-sideBar-background) 80%, var(--vscode-editor-background)) 100%);
@@ -557,7 +620,9 @@ export class GroupEditorPanel {
             align-items: flex-start;
             padding: 20px 22px;
             border-radius: 18px;
+            background: var(--vscode-sideBar-background);
             background: linear-gradient(135deg, color-mix(in srgb, var(--vscode-button-background) 18%, transparent), color-mix(in srgb, var(--vscode-sideBar-background) 92%, transparent));
+            border: 1px solid var(--vscode-widget-border);
             border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 35%, transparent);
         }
 
@@ -584,7 +649,6 @@ export class GroupEditorPanel {
         }
 
         .status {
-            display: ${status ? 'block' : 'none'};
             padding: 12px 14px;
             border-radius: 12px;
             font-size: 13px;
@@ -592,21 +656,28 @@ export class GroupEditorPanel {
         }
 
         .status.info {
+            background: var(--vscode-editorWidget-background);
             background: color-mix(in srgb, var(--vscode-terminal-ansiBlue) 12%, transparent);
+            border: 1px solid var(--vscode-focusBorder);
             border: 1px solid color-mix(in srgb, var(--vscode-terminal-ansiBlue) 35%, transparent);
         }
 
         .status.warning {
+            background: var(--vscode-editorWidget-background);
             background: color-mix(in srgb, var(--vscode-terminal-ansiYellow) 18%, transparent);
+            border: 1px solid var(--vscode-focusBorder);
             border: 1px solid color-mix(in srgb, var(--vscode-terminal-ansiYellow) 35%, transparent);
         }
 
         .status.error {
+            background: var(--vscode-editorWidget-background);
             background: color-mix(in srgb, var(--vscode-errorForeground) 16%, transparent);
+            border: 1px solid var(--vscode-errorForeground);
             border: 1px solid color-mix(in srgb, var(--vscode-errorForeground) 35%, transparent);
         }
 
-        .hidden {
+        .status[hidden],
+        .field[hidden] {
             display: none;
         }
 
@@ -620,6 +691,7 @@ export class GroupEditorPanel {
             padding: 18px;
             border-radius: 16px;
             border: 1px solid var(--vscode-widget-border);
+            background: var(--vscode-editorWidget-background);
             background: color-mix(in srgb, var(--vscode-editorWidget-background) 85%, transparent);
             box-shadow: 0 8px 30px color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
         }
@@ -692,7 +764,9 @@ export class GroupEditorPanel {
             gap: 16px;
             padding: 12px 14px;
             border-radius: 12px;
+            background: var(--vscode-sideBar-background);
             background: color-mix(in srgb, var(--vscode-sideBar-background) 80%, transparent);
+            border: 1px solid var(--vscode-widget-border);
             border: 1px solid color-mix(in srgb, var(--vscode-widget-border) 80%, transparent);
         }
 
@@ -711,11 +785,13 @@ export class GroupEditorPanel {
         .meta-item {
             padding: 12px;
             border-radius: 12px;
+            background: var(--vscode-sideBar-background);
             background: color-mix(in srgb, var(--vscode-editor-background) 55%, var(--vscode-sideBar-background));
+            border: 1px solid var(--vscode-widget-border);
             border: 1px solid color-mix(in srgb, var(--vscode-widget-border) 70%, transparent);
         }
 
-        .meta-item .label {
+        .meta-item .label
             display: block;
             font-size: 11px;
             color: var(--vscode-descriptionForeground);
@@ -752,7 +828,9 @@ export class GroupEditorPanel {
         .template-button {
           padding: 14px 12px;
           border-radius: 14px;
+          border: 1px solid var(--vscode-widget-border);
           border: 1px solid color-mix(in srgb, var(--vscode-widget-border) 80%, transparent);
+          background: var(--vscode-sideBar-background);
           background: color-mix(in srgb, var(--vscode-editor-background) 56%, var(--vscode-sideBar-background));
           text-align: left;
         }
@@ -798,14 +876,18 @@ export class GroupEditorPanel {
         }
 
         .ghost {
+            background: var(--vscode-sideBar-background);
             background: color-mix(in srgb, var(--vscode-editor-background) 58%, var(--vscode-sideBar-background));
             color: var(--vscode-editor-foreground);
+            border: 1px solid var(--vscode-widget-border);
             border: 1px solid color-mix(in srgb, var(--vscode-widget-border) 85%, transparent);
         }
 
         .danger {
+            background: var(--vscode-editorWidget-background);
             background: color-mix(in srgb, var(--vscode-errorForeground) 18%, transparent);
             color: var(--vscode-editor-foreground);
+            border: 1px solid var(--vscode-errorForeground);
             border: 1px solid color-mix(in srgb, var(--vscode-errorForeground) 40%, transparent);
         }
 
@@ -823,7 +905,9 @@ export class GroupEditorPanel {
             gap: 12px;
             padding: 12px 14px;
             border-radius: 12px;
+            background: var(--vscode-sideBar-background);
             background: color-mix(in srgb, var(--vscode-editor-background) 55%, var(--vscode-sideBar-background));
+            border: 1px solid var(--vscode-widget-border);
             border: 1px solid color-mix(in srgb, var(--vscode-widget-border) 70%, transparent);
         }
 
@@ -857,6 +941,7 @@ export class GroupEditorPanel {
             padding: 4px 8px;
             border-radius: 999px;
             font-size: 11px;
+            background: var(--vscode-badge-background);
             background: color-mix(in srgb, var(--vscode-badge-background) 70%, transparent);
             color: var(--vscode-badge-foreground);
         }
@@ -871,6 +956,7 @@ export class GroupEditorPanel {
         .empty-state {
             padding: 18px;
             border-radius: 14px;
+            border: 1px dashed var(--vscode-widget-border);
             border: 1px dashed color-mix(in srgb, var(--vscode-widget-border) 90%, transparent);
             color: var(--vscode-descriptionForeground);
         }
@@ -902,7 +988,7 @@ export class GroupEditorPanel {
           </div>
         </section>
 
-        <div id="status" class="status ${status?.level ?? 'info'}" ${status ? '' : 'hidden'}>${escapeHtml(status?.text)}</div>
+        <div id="status" class="status ${status?.level ?? 'info'}" role="status" aria-live="polite" aria-atomic="true" ${status ? '' : 'hidden'}>${escapeHtml(status?.text)}</div>
 
         <div class="grid">
             <section class="card">
@@ -948,7 +1034,7 @@ export class GroupEditorPanel {
                             </select>
                         </div>
 
-                        <div id="custom-color-row" class="field ${selectedColor === 'custom' ? '' : 'hidden'}">
+                        <div id="custom-color-row" class="field" ${selectedColor === 'custom' ? '' : 'hidden'}>
                         <label for="customColor">${escapeHtml(t('editor.customColor.label'))}</label>
                             <input id="customColor" name="customColor" type="text" value="${escapeHtml(customColor)}" placeholder="#FF5733" spellcheck="false">
                         </div>
@@ -1064,6 +1150,32 @@ export class GroupEditorPanel {
         const customColorRow = document.getElementById('custom-color-row');
         const statusElement = document.getElementById('status');
 
+        function persistDraft() {
+            const values = Object.fromEntries(new FormData(form).entries());
+            const pinnedField = document.getElementById('pinned');
+            values.pinned = pinnedField instanceof HTMLInputElement && pinnedField.checked;
+            vscode.setState({ draft: values });
+        }
+
+        function restoreDraft() {
+            const state = vscode.getState();
+            if (!state || !state.draft || typeof state.draft !== 'object') {
+                return;
+            }
+
+            for (const [name, value] of Object.entries(state.draft)) {
+                const field = form.elements.namedItem(name);
+                if (field instanceof HTMLInputElement && field.type === 'checkbox') {
+                    field.checked = value === true;
+                } else if ((field instanceof HTMLInputElement
+                    || field instanceof HTMLSelectElement
+                    || field instanceof HTMLTextAreaElement)
+                    && typeof value === 'string') {
+                    field.value = value;
+                }
+            }
+        }
+
         function syncCustomColorVisibility() {
             customColorRow.hidden = colorSelect.value !== 'custom';
         }
@@ -1080,7 +1192,14 @@ export class GroupEditorPanel {
             statusElement.textContent = text;
         }
 
+        form.addEventListener('input', persistDraft);
+        form.addEventListener('change', persistDraft);
         colorSelect.addEventListener('change', syncCustomColorVisibility);
+        if (${status?.text === t('editor.status.saved') || status?.text === t('editor.status.savedScopeMoved')}) {
+            vscode.setState(undefined);
+        } else {
+            restoreDraft();
+        }
         syncCustomColorVisibility();
 
         form.addEventListener('submit', (event) => {
@@ -1153,6 +1272,7 @@ export class GroupEditorPanel {
                 }
 
                 syncCustomColorVisibility();
+                persistDraft();
                 setStatus('info', ${JSON.stringify(t('editor.status.presetApplied'))});
                 return;
                 case 'add-active-file':
@@ -1167,8 +1287,7 @@ export class GroupEditorPanel {
                 case 'open-file':
                     vscode.postMessage({
                         type: 'open-file',
-                        path: button.dataset.path || '',
-                        isDirectory: button.dataset.directory === 'true'
+                        path: button.dataset.path || ''
                     });
                     return;
             }

@@ -108,7 +108,10 @@ function normalizePathForMatch(filePath: string, workspaceRoot?: string): string
   }
 
   const relativePath = path.relative(workspaceRoot, filePath).replace(/\\/g, '/');
-  if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+  if (!relativePath
+    || relativePath === '..'
+    || relativePath.startsWith('../')
+    || path.isAbsolute(relativePath)) {
     return normalizedPath.toLowerCase();
   }
 
@@ -264,7 +267,7 @@ const LANGUAGE_RULES: SuggestionRule[] = [
     matches: (_normalizedPath, extension) => JSON_EXTENSIONS.has(extension)
   },
   {
-    id: 'docs',
+    id: 'markdown',
     name: 'Markdown & Docs',
     icon: 'book',
     color: 'charts.green',

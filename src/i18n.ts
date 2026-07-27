@@ -291,6 +291,7 @@ const EN_TRANSLATIONS = {
   'editor.badge.folder': 'Folder',
   'editor.badge.missing': 'Missing',
   'editor.status.groupMissing': 'This group no longer exists.',
+  'editor.status.actionFailed': 'The action could not be completed. Check the CodeGroup output for details.',
   'editor.status.nameRequired': 'Group name is required.',
   'editor.status.badgeTooLong': 'Badge must be 1-2 characters.',
   'editor.status.invalidHex': 'Enter a valid 6-digit hex color such as #FF5733.',
@@ -1555,6 +1556,8 @@ export function getLocalizedSmartGroupText(suggestionId: string): { name: string
       return { name: t('smart.markup.name'), summary: t('smart.markup.summary') };
     case 'data':
       return { name: t('smart.data.name'), summary: t('smart.data.summary') };
+    case 'markdown':
+      return { name: t('smart.markdown.name'), summary: t('smart.markdown.summary') };
     case 'shell':
       return { name: t('smart.shell.name'), summary: t('smart.shell.summary') };
     case 'media':

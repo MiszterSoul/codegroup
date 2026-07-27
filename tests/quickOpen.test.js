@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import * as path from 'node:path';
 import { describe, test } from 'node:test';
 import { buildGroupTrail, buildGroupedFileQuickOpenSections, makeRecentGroupFileKey, normalizeRecentGroupFileKeys } from '../src/quickOpen.ts';
 
@@ -30,6 +31,23 @@ describe('quick open helpers', () => {
   test('dedupes and caps recent group file keys', () => {
     const keys = normalizeRecentGroupFileKeys(['a', 'b', 'a', 'c'], 2);
     assert.deepEqual(keys, ['a', 'b']);
+    assert.deepEqual(normalizeRecentGroupFileKeys(['a'], 0), []);
+    assert.deepEqual(normalizeRecentGroupFileKeys(['a'], -1), []);
+  });
+
+  test('keeps two-dot-prefixed workspace folders relative', () => {
+    const workspaceRoot = path.resolve('repo');
+    const groups = [{
+      id: 'root',
+      name: 'Config',
+      icon: 'gear',
+      color: '',
+      files: [{ path: path.join(workspaceRoot, '..config', 'app.json'), name: 'app.json' }],
+      order: 0
+    }];
+
+    const { otherItems } = buildGroupedFileQuickOpenSections(groups, [], workspaceRoot);
+    assert.match(otherItems[0]?.detail ?? '', /^\.\.config[\\/]app\.json$/);
   });
 
   test('prioritizes recent grouped files and hides directories from quick open', () => {

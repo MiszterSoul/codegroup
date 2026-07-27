@@ -66,5 +66,6 @@ describe('smart group suggestions', () => {
       'Images & Media',
       'Other Code'
     ]);
+    assert.equal(suggestions.find(suggestion => suggestion.name === 'Markdown & Docs')?.id, 'markdown');
   });
 });

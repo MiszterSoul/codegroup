@@ -165,6 +165,38 @@ Groups are saved to `.vscode/file-groups.json`:
 
 - VS Code 1.74.0 or higher
 
+### Development and release
+
+Development and packaging require Node.js 22 or newer. Install the exact locked dependencies first:
+
+```bash
+npm ci
+```
+
+| Command | Purpose |
+|---------|---------|
+| `npm run compile` | Type-check, lint, and create a development bundle with a source map |
+| `npm test` | Run the fast unit test suite |
+| `npm run verify` | Run type checks, lint, and all unit tests |
+| `npm run test:extension` | Build and activate CodeGroup in an isolated VS Code 1.74 test host |
+| `npm run build` | Run all verification and create the minified production bundle |
+| `npm run package:list` | Show exactly which files will be included in the extension |
+| `npm run package:vsix` | Verify, build, and create `dist/codegroup-file-organizer.vsix` |
+
+Install the packaged extension locally for a final manual check:
+
+```bash
+code --install-extension dist/codegroup-file-organizer.vsix --force
+```
+
+Share the `.vsix` file directly, or publish it to the VS Code Marketplace after updating the version in `package.json`:
+
+```bash
+npm run vsce:publish
+```
+
+Marketplace publishing requires a Personal Access Token and publisher access for `PeterDev`. The first extension-host test also downloads VS Code 1.74 and therefore requires network access.
+
 ---
 
 ## 🐛 Known Issues

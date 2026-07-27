@@ -15,8 +15,10 @@ function resolveUsername(): string {
         // os.userInfo can throw in restricted environments; ignore and fall back to env vars
     }
 
-    const envUser = process.env.USER || process.env.USERNAME || process.env.LOGNAME;
-    return envUser ? envUser.trim() : 'unknown';
+    const envUser = [process.env.USER, process.env.USERNAME, process.env.LOGNAME]
+        .map(value => value?.trim())
+        .find((value): value is string => Boolean(value));
+    return envUser ?? 'unknown';
 }
 
 export function normalizeUsername(value?: string): string {

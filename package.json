@@ -480,24 +480,32 @@
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "npm run check-types && npm run lint && node build.js",
-    "test": "node --import tsx --test tests/quickOpen.test.js tests/smartGroups.test.js tests/sharedGroups.test.js tests/i18n.test.js",
+    "build": "npm run package",
+    "test": "node --import tsx --test tests/quickOpen.test.js tests/smartGroups.test.js tests/sharedGroups.test.js tests/i18n.test.js tests/pathUtils.test.js",
+    "test:extension": "npm run package && vscode-test",
+    "verify": "npm run check-types && npm run lint && npm test",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node build.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "npm run check-types && npm run lint && node build.js --production",
+    "package": "npm run verify && node build.js --production",
+    "package:vsix": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && vsce package --out dist/codegroup-file-organizer.vsix",
+    "package:list": "vsce ls",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "vsce:package": "vsce package",
+    "vsce:package": "npm run package:vsix",
     "vsce:publish": "vsce publish"
   },
   "devDependencies": {
-    "@types/vscode": "^1.74.0",
     "@types/node": "18.x",
+    "@types/vscode": "1.74.0",
+    "@vscode/test-cli": "0.0.15",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "3.9.2",
     "esbuild": "^0.27.0",
-    "typescript-eslint": "^8.46.3",
     "eslint": "^9.39.1",
+    "npm-run-all": "^4.1.5",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "npm-run-all": "^4.1.5"
+    "typescript-eslint": "^8.46.3"
   }
 }

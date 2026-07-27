@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { FileGroup, GroupFile, FileGroupsConfig } from './models';
+import { resolveWorkspacePath, toWorkspaceRelativePath } from './pathUtils';
 
 const STORAGE_KEY = 'fileGroups';
 const CONFIG_FILE_NAME = '.vscode/file-groups.json';
@@ -40,9 +41,14 @@ export class StorageService {
         if (workspaceFolders && workspaceFolders.length > 0) {
             const pattern = new vscode.RelativePattern(workspaceFolders[0], CONFIG_FILE_NAME);
             const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+            const reload = async (): Promise<void> => {
+                if (await this.loadFromFile()) {
+                    this._onDidChange.fire();
+                }
+            };
 
-            watcher.onDidChange(() => this._onDidChange.fire());
-            watcher.onDidCreate(() => this._onDidChange.fire());
+            watcher.onDidChange(() => void reload());
+            watcher.onDidCreate(() => void reload());
             watcher.onDidDelete(() => this._onDidChange.fire());
         }
     }
@@ -58,9 +64,14 @@ export class StorageService {
                 GLOBAL_CONFIG_FILE_NAME
             );
             const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+            const reload = async (): Promise<void> => {
+                if (await this.loadFromGlobalFile()) {
+                    this._onDidChange.fire();
+                }
+            };
 
-            watcher.onDidChange(() => this._onDidChange.fire());
-            watcher.onDidCreate(() => this._onDidChange.fire());
+            watcher.onDidChange(() => void reload());
+            watcher.onDidCreate(() => void reload());
             watcher.onDidDelete(() => this._onDidChange.fire());
         }
     }
@@ -233,7 +244,7 @@ export class StorageService {
                     for (const group of config.groups) {
                         const updatedFiles = [];
                         for (const file of group.files) {
-                            const absolutePath = this.toAbsolutePath(file.path, workspaceRoot);
+                            const absolutePath = resolveWorkspacePath(file.path, workspaceRoot);
                             let isDirectory = file.isDirectory;
 
                             // If isDirectory is not set, check the filesystem
@@ -349,44 +360,25 @@ export class StorageService {
      * Save groups to config file
      */
     private async saveToFile(groups: FileGroup[]): Promise<void> {
-        const configUri = this.getConfigFileUri();
-        if (!configUri) {
-            return;
-        }
-
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         if (!workspaceRoot) {
             return;
         }
 
-        // Convert absolute paths to relative paths for portability
+        // Convert absolute paths to relative paths for portability.
         const portableGroups = groups.map(group => ({
             ...group,
             files: group.files.map(file => ({
                 ...file,
-                path: this.toRelativePath(file.path, workspaceRoot)
+                path: toWorkspaceRelativePath(file.path, workspaceRoot)
             }))
         }));
 
-        const config: FileGroupsConfig = {
+        // Merge with the existing config so visibility and future settings survive group saves.
+        await this.saveConfigToFile({
             version: 2,
             groups: portableGroups
-        };
-
-        try {
-            // Ensure .vscode directory exists
-            const vscodeDirUri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders![0].uri, '.vscode');
-            try {
-                await vscode.workspace.fs.createDirectory(vscodeDirUri);
-            } catch {
-                // Directory might already exist
-            }
-
-            const content = Buffer.from(JSON.stringify(config, null, 2), 'utf-8');
-            await vscode.workspace.fs.writeFile(configUri, content);
-        } catch (error) {
-            console.error('Failed to save file-groups.json:', error);
-        }
+        });
     }
 
     /**
@@ -420,29 +412,7 @@ export class StorageService {
         }
     }
 
-    /**
-     * Convert absolute path to relative path
-     */
-    private toRelativePath(absolutePath: string, workspaceRoot: string): string {
-        const normalizedAbsolute = absolutePath.replace(/\\/g, '/');
-        const normalizedRoot = workspaceRoot.replace(/\\/g, '/');
 
-        if (normalizedAbsolute.startsWith(normalizedRoot)) {
-            return normalizedAbsolute.substring(normalizedRoot.length + 1);
-        }
-        return absolutePath; // Keep absolute if outside workspace
-    }
-
-    /**
-     * Convert relative path to absolute path
-     */
-    private toAbsolutePath(relativePath: string, workspaceRoot: string): string {
-        // If already absolute, return as is
-        if (relativePath.includes(':') || relativePath.startsWith('/')) {
-            return relativePath;
-        }
-        return `${workspaceRoot}/${relativePath}`.replace(/\//g, require('path').sep);
-    }
 
     /**
      * Create a new group
@@ -479,14 +449,31 @@ export class StorageService {
      * Get a group ID and all its descendant IDs
      */
     private getGroupAndChildIds(groupId: string, groups: FileGroup[]): Set<string> {
+        const childrenByParent = new Map<string, FileGroup[]>();
+        for (const group of groups) {
+            if (!group.parentId) {
+                continue;
+            }
+
+            const children = childrenByParent.get(group.parentId) ?? [];
+            children.push(group);
+            childrenByParent.set(group.parentId, children);
+        }
+
         const ids = new Set<string>([groupId]);
-        const findChildren = (parentId: string) => {
-            groups.filter(g => g.parentId === parentId).forEach(child => {
+        const pendingIds = [groupId];
+        while (pendingIds.length > 0) {
+            const parentId = pendingIds.pop()!;
+            for (const child of childrenByParent.get(parentId) ?? []) {
+                if (ids.has(child.id)) {
+                    continue;
+                }
+
                 ids.add(child.id);
-                findChildren(child.id);
-            });
-        };
-        findChildren(groupId);
+                pendingIds.push(child.id);
+            }
+        }
+
         return ids;
     }
 

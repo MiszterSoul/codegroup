@@ -1,21 +1,34 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { t } from './i18n';
-import { FileGroup, FileGroupTreeItem, GroupFile } from './models';
+import { countLabel, t } from './i18n';
+import { FileGroup, FileGroupTreeItem, GroupFile, generateId } from './models';
 import { StorageService } from './storageService';
+import { CURRENT_USERNAME } from './userInfo';
 
 /**
  * Recursively enumerate all files under a directory and call `addUri` for each.
  * Skips paths that can't be read.
  */
-function collectFilesFromDir(dirPath: string, addUri: (filePath: string) => void): void {
+async function collectFilesFromDir(
+    dirPath: string,
+    addUri: (filePath: string) => void,
+    token: vscode.CancellationToken
+): Promise<void> {
+    if (token.isCancellationRequested) {
+        return;
+    }
+
     try {
-        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
         for (const entry of entries) {
+            if (token.isCancellationRequested) {
+                return;
+            }
+
             const fullPath = path.join(dirPath, entry.name);
             if (entry.isDirectory()) {
-                collectFilesFromDir(fullPath, addUri);
+                await collectFilesFromDir(fullPath, addUri, token);
             } else {
                 addUri(fullPath);
             }
@@ -47,7 +60,7 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
     /**
      * Sort files based on the sort order
      */
-    private sortFiles(files: GroupFile[], sortOrder?: string): GroupFile[] {
+    private async sortFiles(files: GroupFile[], sortOrder?: string): Promise<GroupFile[]> {
         if (!sortOrder || sortOrder === 'manual') {
             return files;
         }
@@ -62,27 +75,21 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
                 sorted.sort((a, b) => b.name.localeCompare(a.name));
                 break;
             case 'date-asc':
-                sorted.sort((a, b) => {
+            case 'date-desc': {
+                const modifiedTimes = new Map<string, number>();
+                await Promise.all(sorted.map(async (file) => {
                     try {
-                        const aStat = fs.statSync(a.path);
-                        const bStat = fs.statSync(b.path);
-                        return aStat.mtime.getTime() - bStat.mtime.getTime();
+                        modifiedTimes.set(file.path, (await fs.promises.stat(file.path)).mtimeMs);
                     } catch {
-                        return 0;
+                        modifiedTimes.set(file.path, 0);
                     }
-                });
+                }));
+                const direction = sortOrder === 'date-asc' ? 1 : -1;
+                sorted.sort((a, b) => direction * (
+                    (modifiedTimes.get(a.path) ?? 0) - (modifiedTimes.get(b.path) ?? 0)
+                ));
                 break;
-            case 'date-desc':
-                sorted.sort((a, b) => {
-                    try {
-                        const aStat = fs.statSync(a.path);
-                        const bStat = fs.statSync(b.path);
-                        return bStat.mtime.getTime() - aStat.mtime.getTime();
-                    } catch {
-                        return 0;
-                    }
-                });
-                break;
+            }
             case 'type':
                 sorted.sort((a, b) => {
                     const aExt = path.extname(a.name).toLowerCase();
@@ -184,7 +191,7 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
         ];
     }
 
-    getChildren(element?: FileGroupTreeItem): FileGroupTreeItem[] {
+    async getChildren(element?: FileGroupTreeItem): Promise<FileGroupTreeItem[]> {
         if (!element) {
             // Root level - show local groups and global groups section
             const items: FileGroupTreeItem[] = [];
@@ -209,8 +216,8 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
                 })
             );
 
-            // Add Global Groups section if there are any global groups
-            const globalGroups = this.storageService.getGlobalGroups().filter(g => !g.parentId);
+            // Add Global Groups section only when global groups are visible in this workspace.
+            const globalGroups = this.storageService.getGroups().filter(g => g.isGlobal && !g.parentId);
             if (globalGroups.length > 0) {
                 items.push(new FileGroupTreeItem('section', null, undefined, true, 0, globalGroups.length, [], 'global'));
             }
@@ -223,8 +230,8 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
                 return this.getQuickActionItems();
             }
 
-            // Global Groups section - return global root groups
-            const globalGroups = this.storageService.getGlobalGroups().filter(g => !g.parentId);
+            // Global Groups section - return visible global root groups.
+            const globalGroups = this.storageService.getGroups().filter(g => g.isGlobal && !g.parentId);
             return globalGroups
                 .sort((a, b) => {
                     if (a.pinned && !b.pinned) { return -1; }
@@ -256,7 +263,7 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
             });
 
             // Add files
-            const sortedFiles = this.sortFiles(element.group.files, element.group.sortOrder);
+            const sortedFiles = await this.sortFiles(element.group.files, element.group.sortOrder);
             sortedFiles.forEach(file => {
                 items.push(new FileGroupTreeItem('file', element.group!, file));
             });
@@ -326,11 +333,11 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
     /**
      * Handle drag start - export data for dragging
      */
-    handleDrag(
+    async handleDrag(
         source: readonly FileGroupTreeItem[],
         dataTransfer: vscode.DataTransfer,
-        _token: vscode.CancellationToken
-    ): void {
+        token: vscode.CancellationToken
+    ): Promise<void> {
         // Collect file URIs to export.
         // Keep URI formatting canonical (`toString`) to match built-in explorer/editor drags.
         const uriSet = new Set<string>();
@@ -343,7 +350,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             if (item.itemType === 'file' && item.file) {
                 if (item.file.isDirectory) {
                     // Saved-folder entry: enumerate immediate children and add each file
-                    collectFilesFromDir(item.file.path, addFile);
+                    await collectFilesFromDir(item.file.path, addFile, token);
                 } else {
                     addFile(item.file.path);
                 }
@@ -351,7 +358,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
                 const allFiles = this.storageService.getAllFilesInGroup(item.group.id);
                 for (const file of allFiles) {
                     if (file.isDirectory) {
-                        collectFilesFromDir(file.path, addFile);
+                        await collectFilesFromDir(file.path, addFile, token);
                     } else {
                         addFile(file.path);
                     }
@@ -537,14 +544,17 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
      * Check if potentialDescendant is a descendant of ancestorId
      */
     private isDescendant(potentialDescendantId: string, ancestorId: string): boolean {
-        const groups = this.storageService.getGroups();
-        let current = groups.find(g => g.id === potentialDescendantId);
+        const groupsById = new Map(this.storageService.getAllGroups().map(group => [group.id, group]));
+        const visitedIds = new Set<string>();
+        let current = groupsById.get(potentialDescendantId);
 
-        while (current && current.parentId) {
+        while (current?.parentId && !visitedIds.has(current.id)) {
             if (current.parentId === ancestorId) {
                 return true;
             }
-            current = groups.find(g => g.id === current!.parentId);
+
+            visitedIds.add(current.id);
+            current = groupsById.get(current.parentId);
         }
 
         return false;
@@ -567,23 +577,23 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
             return;
         }
 
-        // Moving files between different groups
-        let movedCount = 0;
+        // Moving files between different groups. Add first so a duplicate or stale target
+        // never causes the source entry to be removed.
+        const movedUris: vscode.Uri[] = [];
 
         for (const item of draggedFiles) {
             if (item.file && item.group && item.group.id !== targetGroup.id) {
-                // Remove from source group
-                await this.storageService.removeFileFromGroup(item.group.id, item.file.path);
-                // Add to target group
                 const added = await this.storageService.addFileToGroup(targetGroup.id, item.file);
                 if (added) {
-                    movedCount++;
+                    await this.storageService.removeFileFromGroup(item.group.id, item.file.path);
+                    movedUris.push(vscode.Uri.file(item.file.path));
                 }
             }
         }
 
-        if (movedCount > 0) {
+        if (movedUris.length > 0) {
             this.provider.refresh();
+            this.onFilesAddedCallback?.(movedUris);
         }
     }
 
@@ -654,16 +664,25 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
         if (uris.length > 0) {
             // Ask user to name the new global group or select existing
             const globalGroups = this.storageService.getGlobalGroups();
-            const quickPickItems: vscode.QuickPickItem[] = [
-                { label: t('dragDrop.global.createNew'), description: t('dragDrop.global.createNew.description') },
+            type GlobalGroupPickItem = vscode.QuickPickItem & {
+                action?: 'create';
+                groupId?: string;
+            };
+            const quickPickItems: GlobalGroupPickItem[] = [
+                {
+                    label: t('dragDrop.global.createNew'),
+                    description: t('dragDrop.global.createNew.description'),
+                    action: 'create'
+                },
                 { label: '', kind: vscode.QuickPickItemKind.Separator }
             ];
 
-            // Add existing global groups
+            // Stable IDs keep localized labels and duplicate group names safe.
             globalGroups.filter(g => !g.parentId).forEach(g => {
                 quickPickItems.push({
                     label: `$(${g.icon || 'folder'}) ${g.name}`,
-                    description: `${g.files.length} ${g.files.length === 1 ? 'file' : 'files'}`
+                    description: countLabel(g.files.length, 'noun.file.one', 'noun.file.other'),
+                    groupId: g.id
                 });
             });
 
@@ -677,7 +696,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
 
             let targetGroup: FileGroup | undefined;
 
-            if (selection.label.includes('Create New')) {
+            if (selection.action === 'create') {
                 // Create new global group
                 const name = await vscode.window.showInputBox({
                     prompt: t('dragDrop.global.name.prompt'),
@@ -688,9 +707,7 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
                     return;
                 }
 
-                const { generateId } = await import('./models.js');
-                const { CURRENT_USERNAME } = await import('./userInfo.js');
-                const groups = this.storageService.getGroups();
+                const groups = this.storageService.getAllGroups();
                 targetGroup = {
                     id: generateId(),
                     name,
@@ -704,10 +721,8 @@ export class FileGroupsDragDropController implements vscode.TreeDragAndDropContr
                     isGlobal: true
                 };
                 await this.storageService.createGroup(targetGroup);
-            } else {
-                // Find the selected group
-                const groupName = selection.label.replace(/^\$\([^)]+\)\s*/, '');
-                targetGroup = globalGroups.find(g => g.name === groupName);
+            } else if (selection.groupId) {
+                targetGroup = globalGroups.find(g => g.id === selection.groupId);
             }
 
             if (targetGroup) {

@@ -52,18 +52,24 @@ Have an idea? [Open a feature request](https://github.com/MiszterSoul/codegroup/
 
 ### Prerequisites
 
-- Node.js 16+
+- Node.js 22+
 - VS Code 1.74.0+
-- npm or yarn
+- npm
 
 ### Getting Started
 
 ```bash
-# Install dependencies
-npm install
+# Install the locked dependencies
+npm ci
 
-# Compile TypeScript
+# Type-check, lint, and compile
 npm run compile
+
+# Run unit tests and all static checks
+npm run verify
+
+# Run the extension in an isolated VS Code 1.74 host
+npm run test:extension
 
 # Watch for changes (recommended during development)
 npm run watch
@@ -75,6 +81,19 @@ npm run watch
 2. Press `F5` to launch Extension Development Host
 3. The extension will be active in the new window
 
+For release validation and sharing:
+
+```bash
+# Verify and create a production VSIX
+npm run package:vsix
+
+# Inspect the exact packaged file list
+npm run package:list
+
+# Install the artifact locally
+code --install-extension dist/codegroup-file-organizer.vsix --force
+```
+
 ### Project Structure
 
 ```
@@ -85,7 +104,8 @@ codegroup/
 │   ├── fileDecorationProvider.ts # File decorations
 │   ├── storageService.ts     # Data persistence
 │   ├── models.ts             # TypeScript interfaces
-│   └── test/                 # Test files
+│   └── userInfo.ts           # Creator attribution helpers
+├── tests/                    # Unit and extension-host tests
 ├── images/                   # Icons and screenshots
 ├── package.json              # Extension manifest
 └── tsconfig.json             # TypeScript config

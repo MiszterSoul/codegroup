@@ -1,6 +1,7 @@
 .vscode/**
 .vscode-test/**
 src/**
+tests/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
@@ -14,6 +15,7 @@ bun.lockb
 **/*.ts
 **/.vscode-test.*
 node_modules/**
+dist/**
 .git/**
 images/generate-icon.html
 images/icon.svg

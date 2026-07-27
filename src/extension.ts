@@ -11,6 +11,7 @@ import { CODEGROUP_LANGUAGE_CONFIGURATION_KEY, CodeGroupLanguage, countLabel, ge
 import { buildGroupedFileQuickOpenSections, makeRecentGroupFileKey, normalizeRecentGroupFileKeys } from './quickOpen';
 import { buildSharedGroupPayload, importSharedGroupPayload, isSharedGroupPayload } from './sharedGroups';
 import { SmartGroupSuggestion, suggestSmartGroups } from './smartGroups';
+import { isPathInsideWorkspace } from './pathUtils';
 
 let storageService: StorageService;
 let fileGroupsProvider: FileGroupsProvider;
@@ -129,8 +130,7 @@ async function openGroupedFile(
 }
 
 function getAllStoredGroups(): FileGroup[] {
-    const localGroups = storageService.getGroups().filter((group) => !group.isGlobal);
-    return [...storageService.getGlobalGroups(), ...localGroups];
+    return storageService.getAllGroups();
 }
 
 function makeUniqueGroupName(existingNames: Set<string>, baseName: string): string {
@@ -196,10 +196,6 @@ async function createSuggestedGroups(suggestions: readonly SmartGroupSuggestion[
     return createdGroups;
 }
 
-function isWithinWorkspace(filePath: string, workspaceRoot: string): boolean {
-    const relativePath = path.relative(workspaceRoot, filePath);
-    return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
-}
 
 function collectOpenEditorFiles(): GroupFile[] {
     const files: GroupFile[] = [];
@@ -276,7 +272,7 @@ async function collectGitChangedFiles(): Promise<GroupFile[] | undefined> {
     return dedupeGroupFiles(
         allPaths
             .map((relativePath) => path.resolve(repositoryRoot, relativePath))
-            .filter((filePath) => isWithinWorkspace(filePath, workspaceRoot))
+            .filter((filePath) => isPathInsideWorkspace(filePath, workspaceRoot))
             .map((filePath) => createFileGroupEntry(filePath))
     );
 }
@@ -381,6 +377,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Register file decoration provider (for tab/explorer colors)
     context.subscriptions.push(
+        fileDecorationProvider,
         vscode.window.registerFileDecorationProvider(fileDecorationProvider)
     );
 
@@ -453,7 +450,7 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
     // Handle file deletions - remove deleted files from groups
     fileWatcher.onDidDelete(async (uri) => {
         const deletedPath = uri.fsPath;
-        const groups = storageService.getGroups();
+        const groups = storageService.getAllGroups();
         let changed = false;
 
         for (const group of groups) {
@@ -475,7 +472,7 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
     // Watch for file renames/moves using the onDidRenameFiles event
     context.subscriptions.push(
         vscode.workspace.onDidRenameFiles(async (event) => {
-            const groups = storageService.getGroups();
+            const groups = storageService.getAllGroups();
             let changed = false;
 
             for (const { oldUri, newUri } of event.files) {
@@ -749,7 +746,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 return;
             }
 
-            const payload = buildSharedGroupPayload(targetGroup.id, storageService.getGroups(), getWorkspaceRoot());
+            const payload = buildSharedGroupPayload(targetGroup.id, storageService.getAllGroups(), getWorkspaceRoot());
             const json = JSON.stringify(payload, null, 2);
 
             await vscode.env.clipboard.writeText(json);
@@ -1701,7 +1698,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     // Clean up missing files (files that no longer exist)
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.cleanupMissingFiles', async () => {
-            const groups = storageService.getGroups();
+            const groups = storageService.getAllGroups();
             let removedCount = 0;
             const fs = require('fs');
 

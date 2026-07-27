@@ -1,35 +1,9 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { countLabel, t } from './i18n';
 import { NORMALIZED_CURRENT_USERNAME, normalizeUsername } from './userInfo';
 
-/**
- * Calculate lines of code and last modified for a list of files
- */
-function calculateFileStats(files: GroupFile[]): { totalLines: number; lastModified: Date | undefined } {
-    let totalLines = 0;
-    let lastModified: Date | undefined;
 
-    for (const file of files) {
-        if (!file.isDirectory) {
-            try {
-                const stat = fs.statSync(file.path);
-                const mtime = new Date(stat.mtime);
-                if (!lastModified || mtime > lastModified) {
-                    lastModified = mtime;
-                }
-
-                const content = fs.readFileSync(file.path, 'utf-8');
-                totalLines += content.split('\n').length;
-            } catch {
-                // File might not exist or be unreadable
-            }
-        }
-    }
-
-    return { totalLines, lastModified };
-}
 
 /**
  * Build a compact folder suffix from a file path using the last N parent folders.
@@ -461,10 +435,6 @@ export class FileGroupTreeItem extends vscode.TreeItem {
 
             this.description = descriptionParts.length > 0 ? descriptionParts.join(' • ') : t('group.description.empty');
 
-            // Calculate file stats (lines of code, last modified)
-            const filesToCheck = allFiles.length > 0 ? allFiles : group.files;
-            const { totalLines, lastModified } = calculateFileStats(filesToCheck);
-
             const tooltipLines: string[] = [`**${group.name}**`];
 
             if (group.isGlobal) {
@@ -484,10 +454,6 @@ export class FileGroupTreeItem extends vscode.TreeItem {
                 if (totalItemCount > group.files.length) {
                     tooltipLines.push(`- ${t('group.tooltip.totalItems')}: ${totalItemCount}`);
                 }
-            }
-            tooltipLines.push(`- ${t('group.tooltip.linesOfCode')}: ${totalLines.toLocaleString()}`);
-            if (lastModified) {
-                tooltipLines.push(`- ${t('group.tooltip.lastModified')}: ${lastModified.toLocaleString()}`);
             }
 
             if (group.details) {
