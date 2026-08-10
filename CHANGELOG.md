@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.4.0] - 2026-08-10
+
+### Added
+
+- **docs:** Added current English screenshots for the persistent Quick Actions tree and visual Group Editor.
+- **test:** Added a manifest regression test that prevents the duplicate welcome-action panel from returning.
+
+### Changed
+
+- **improvement:** Empty workspaces now use the Quick Actions tree as the single creation workflow instead of also showing a duplicate stack of welcome buttons.
+- **improvement:** Refreshed Marketplace discovery metadata, the README landing page, contributor guidance, issue forms, and repository social preview.
+
+## [1.3.1] - 2026-07-27
+
+### Fixed
+
+- **fix:** Hardened workspace-relative path handling for sibling folders, names beginning with two dots, and paths containing colons.
+- **fix:** Strengthened group storage, import, and file-operation behavior across multi-root and edge-case workspaces.
+
+### Changed
+
+- **test:** Expanded unit and extension-host coverage for path handling, shared groups, smart groups, and Quick Open.
+- **build:** Standardized validation and packaging on the Node/npm toolchain.
+
 ## [1.3.0] - 2026-06-09
 
 ### Added
