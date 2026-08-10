@@ -16,7 +16,9 @@ Create persistent file groups, nested subgroups, smart working sets, global grou
 
 </div>
 
-![CodeGroup demo](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/demo.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-quick-actions.png" alt="CodeGroup Quick Actions in the VS Code Explorer">
+</p>
 
 ## Why CodeGroup?
 
@@ -54,6 +56,12 @@ CodeGroup lets you collect those related files into reusable groups without chan
 5. Click a file to open it, or use **Open All** for the full working set.
 
 That is enough to start. Everything else is optional.
+
+## Visual group editor
+
+Open any group in the visual editor to manage its name, notes, icon, color, badge, order, storage scope, presets, and file membership in one place.
+
+![CodeGroup visual group editor](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-group-editor.png)
 
 ## Smart Groups
 
