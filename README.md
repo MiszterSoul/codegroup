@@ -7,8 +7,8 @@
 
 Create persistent file groups, nested subgroups, smart working sets, global groups, and shareable collections directly inside the VS Code Explorer.
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/PeterDev.codegroup-file-organizer?style=for-the-badge&label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/PeterDev.codegroup-file-organizer?style=for-the-badge&label=Installs)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
+[![VS Code Marketplace](https://vsmarketplacebadges.dev/version/PeterDev.codegroup-file-organizer.svg)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
+[![Installs](https://vsmarketplacebadges.dev/installs/PeterDev.codegroup-file-organizer.svg)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
 [![Open VSX](https://img.shields.io/open-vsx/dt/PeterDev/codegroup-file-organizer?style=for-the-badge&label=Open%20VSX)](https://open-vsx.org/extension/PeterDev/codegroup-file-organizer)
 [![GitHub stars](https://img.shields.io/github/stars/MiszterSoul/codegroup?style=for-the-badge)](https://github.com/MiszterSoul/codegroup)
 
