@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: VS Code Marketplace
+    url: https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer
+    about: Install CodeGroup or leave a Marketplace review.
+  - name: Open VSX
+    url: https://open-vsx.org/extension/PeterDev/codegroup-file-organizer
+    about: Install CodeGroup from Open VSX.
