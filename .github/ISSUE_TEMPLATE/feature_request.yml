@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest an improvement for CodeGroup
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Good feature requests explain the workflow problem first, then the proposed solution.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the workflow that is difficult, repetitive, or currently impossible.
+      placeholder: When I work on ..., I need to ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe how you would like CodeGroup to behave.
+      placeholder: CodeGroup could ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example workflow
+      description: A short concrete example helps evaluate the idea quickly.
+      placeholder: |
+        1. I select ...
+        2. CodeGroup ...
+        3. The result is ...
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Mention workarounds or related extensions/features you already tried.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be interested in implementing this feature.
