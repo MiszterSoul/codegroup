@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+  <title id="title">CodeGroup social preview</title>
+  <desc id="description">CodeGroup branding and a VS Code screenshot showing organized file groups.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="0.52" stop-color="#171827"/>
+      <stop offset="1" stop-color="#251946"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#7e57c2" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#7e57c2" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7c83ff"/>
+      <stop offset="1" stop-color="#b777e8"/>
+    </linearGradient>
+    <linearGradient id="panel-border" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#aeb4ff" stop-opacity="0.66"/>
+      <stop offset="1" stop-color="#a95ed0" stop-opacity="0.18"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#05060b" flood-opacity="0.62"/>
+    </filter>
+    <filter id="icon-shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="10" stdDeviation="13" flood-color="#0a0a13" flood-opacity="0.48"/>
+    </filter>
+    <clipPath id="screenshot-clip">
+      <rect x="590" y="135" width="624" height="416" rx="0"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#background)"/>
+  <ellipse cx="1050" cy="112" rx="420" ry="330" fill="url(#glow)"/>
+  <ellipse cx="520" cy="660" rx="420" ry="220" fill="url(#glow)" opacity="0.35"/>
+  <path d="M0 554 C260 498 452 652 712 594 C942 542 1072 514 1280 562 L1280 640 L0 640 Z" fill="#5c6bc0" opacity="0.055"/>
+
+  <g transform="translate(68 66)">
+    <image x="0" y="0" width="88" height="88" xlink:href="../icon.png" filter="url(#icon-shadow)"/>
+    <text x="112" y="34" fill="#aaaef4" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="2.6">VS CODE EXTENSION</text>
+    <text x="112" y="76" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="750" letter-spacing="-1.2">CodeGroup</text>
+  </g>
+
+  <g transform="translate(68 205)">
+    <text x="0" y="0" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="760" letter-spacing="-1.4">
+      <tspan x="0" dy="0">Organize your files.</tspan>
+      <tspan x="0" dy="58">Keep your structure.</tspan>
+    </text>
+    <rect x="0" y="139" width="364" height="4" rx="2" fill="url(#accent)"/>
+    <text x="0" y="192" fill="#c8cad8" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="450">
+      <tspan x="0" dy="0">Group related VS Code files</tspan>
+      <tspan x="0" dy="32">without moving them.</tspan>
+    </text>
+
+    <g transform="translate(0 283)" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="650">
+      <g>
+        <rect x="0" y="0" width="143" height="42" rx="21" fill="#777de5" fill-opacity="0.13" stroke="#9398f7" stroke-opacity="0.45"/>
+        <circle cx="21" cy="21" r="5" fill="#9499ff"/>
+        <text x="35" y="27" fill="#e5e6ff">Smart Groups</text>
+      </g>
+      <g transform="translate(154 0)">
+        <rect x="0" y="0" width="147" height="42" rx="21" fill="#8d5bc0" fill-opacity="0.13" stroke="#bd8ae8" stroke-opacity="0.42"/>
+        <circle cx="21" cy="21" r="5" fill="#c48df2"/>
+        <text x="35" y="27" fill="#f1e5ff">Working Sets</text>
+      </g>
+      <g transform="translate(0 54)">
+        <rect x="0" y="0" width="156" height="42" rx="21" fill="#777de5" fill-opacity="0.13" stroke="#9398f7" stroke-opacity="0.45"/>
+        <circle cx="21" cy="21" r="5" fill="#9499ff"/>
+        <text x="35" y="27" fill="#e5e6ff">Drag &amp; Drop</text>
+      </g>
+      <g transform="translate(167 54)">
+        <rect x="0" y="0" width="137" height="42" rx="21" fill="#8d5bc0" fill-opacity="0.13" stroke="#bd8ae8" stroke-opacity="0.42"/>
+        <circle cx="21" cy="21" r="5" fill="#c48df2"/>
+        <text x="35" y="27" fill="#f1e5ff">Subgroups</text>
+      </g>
+    </g>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="566" y="92" width="672" height="500" rx="20" fill="#11151d" stroke="url(#panel-border)" stroke-width="2"/>
+    <rect x="566" y="92" width="672" height="44" rx="20" fill="#252a35"/>
+    <rect x="566" y="116" width="672" height="20" fill="#252a35"/>
+    <circle cx="592" cy="114" r="6" fill="#ff6f77"/>
+    <circle cx="613" cy="114" r="6" fill="#f2c94c"/>
+    <circle cx="634" cy="114" r="6" fill="#58c97c"/>
+    <rect x="674" y="104" width="416" height="21" rx="10.5" fill="#171a22" stroke="#3b4250"/>
+    <text x="882" y="119" text-anchor="middle" fill="#8f96a6" font-family="Segoe UI, Arial, sans-serif" font-size="11">CodeGroup · Visual Studio Code</text>
+    <image x="590" y="135" width="624" height="416" xlink:href="../images/demo.gif" preserveAspectRatio="xMidYMid slice" clip-path="url(#screenshot-clip)"/>
+    <rect x="590" y="135" width="624" height="416" fill="none" stroke="#353b49"/>
+    <rect x="842" y="566" width="120" height="4" rx="2" fill="url(#accent)" opacity="0.85"/>
+  </g>
+</svg>

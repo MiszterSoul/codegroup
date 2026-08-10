@@ -17,6 +17,7 @@ bun.lockb
 node_modules/**
 dist/**
 .git/**
+.github/**
 images/generate-icon.html
 images/icon.svg
 images/screenshot-guide.html
