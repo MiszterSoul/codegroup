@@ -13,7 +13,7 @@ import { buildGroupedFileQuickOpenSections, makeRecentGroupFileKey, normalizeRec
 import { buildSharedGroupPayload, importSharedGroupPayload, isSharedGroupPayload } from './sharedGroups';
 import { SmartGroupSuggestion, suggestSmartGroups } from './smartGroups';
 import { isPathInsideWorkspace } from './pathUtils';
-import { buildGroupFilePathsText } from './groupFilePaths';
+import { buildGroupFilePathsText, collectGroupFilePaths } from './groupFilePaths';
 import { removeGroupedFilePath, renameGroupedFilePath } from './groupFileMaintenance';
 
 let storageService: StorageService;
@@ -104,6 +104,28 @@ async function rememberRecentGroupFile(context: vscode.ExtensionContext, groupId
     ]);
 
     await context.workspaceState.update(RECENT_GROUP_FILES_STORAGE_KEY, nextKeys);
+}
+
+async function openGroupFiles(groupId: string, includeSubgroups: boolean): Promise<void> {
+    const uniqueFilePaths = collectGroupFilePaths(
+        groupId,
+        storageService.getGroups(),
+        () => true,
+        { includeSubgroups }
+    );
+
+    if (uniqueFilePaths.length === 0) {
+        return;
+    }
+
+    await Promise.allSettled(
+        uniqueFilePaths.map((filePath) =>
+            vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath), {
+                preview: false,
+                preserveFocus: true
+            })
+        )
+    );
 }
 
 async function openGroupedFile(
@@ -1646,32 +1668,20 @@ function registerCommands(context: vscode.ExtensionContext) {
         })
     );
 
-    // Open all files in a group (including child groups)
+    // Open only the files directly assigned to the selected group
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.openDirect', async (item: FileGroupTreeItem) => {
+            if (item?.itemType === 'group' && item.group) {
+                await openGroupFiles(item.group.id, false);
+            }
+        })
+    );
+
+    // Open all files in a group, including every child group
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.openAll', async (item: FileGroupTreeItem) => {
             if (item?.itemType === 'group' && item.group) {
-                // Get all files including from child groups
-                const allFiles = storageService.getAllFilesInGroup(item.group.id);
-
-                if (allFiles.length > 0) {
-                    // Batch open for speed: dedupe file paths and skip folder entries.
-                    const uniqueFilePaths = [...new Set(
-                        allFiles
-                            .filter(file => !file.isDirectory)
-                            .map(file => file.path)
-                    )];
-
-                    if (uniqueFilePaths.length > 0) {
-                        await Promise.allSettled(
-                            uniqueFilePaths.map(filePath =>
-                                vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath), {
-                                    preview: false,
-                                    preserveFocus: true
-                                })
-                            )
-                        );
-                    }
-                }
+                await openGroupFiles(item.group.id, true);
             }
         })
     );

@@ -60,4 +60,28 @@ describe('copy group file paths', () => {
       path.normalize(existing)
     );
   });
+
+  test('can limit opening to files directly assigned to the selected group', () => {
+    const rootFile = path.resolve('repo', 'root.ts');
+    const childFile = path.resolve('repo', 'child.ts');
+    const groups = [
+      {
+        id: 'root', name: 'Root', icon: 'folder', color: '', order: 0,
+        files: [{ path: rootFile, name: 'root.ts' }]
+      },
+      {
+        id: 'child', name: 'Child', icon: 'folder', color: '', order: 1, parentId: 'root',
+        files: [{ path: childFile, name: 'child.ts' }]
+      }
+    ];
+
+    assert.deepEqual(
+      collectGroupFilePaths('root', groups, () => true, { includeSubgroups: false }),
+      [rootFile]
+    );
+    assert.deepEqual(
+      collectGroupFilePaths('root', groups, () => true),
+      [rootFile, childFile]
+    );
+  });
 });

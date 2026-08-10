@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.4.1] - 2026-08-10
+
+### Added
+
+- **onboarding:** Added a native first-install Getting Started walkthrough with current English screenshots and direct actions for creating and using bookmark groups.
+- **feat:** Added separate actions to open only a group's direct files or the group together with every nested subgroup.
+- **feat:** Added copying all existing file paths from a group and its subgroups.
+- **docs:** Added shared-group JSON recipes and clearer guidance about groups as bookmark folders that do not move files on disk.
+
+### Changed
+
+- **accessibility:** Improved accessible labels and semantics throughout the tree and visual Group Editor.
+- **localization:** Updated all nine supported languages for the new onboarding, group actions, copy-path feedback, and accessibility text.
+- **test:** Expanded multi-root workspace, manifest, localization, accessibility, and nested-group path coverage.
+
 ## [1.4.0] - 2026-08-10
 
 ### Added

@@ -17,7 +17,8 @@ function compareGroups(left: FileGroup, right: FileGroup): number {
 export function collectGroupFilePaths(
     rootGroupId: string,
     groups: readonly FileGroup[],
-    pathExists: PathExists
+    pathExists: PathExists,
+    options: { includeSubgroups?: boolean } = {}
 ): string[] {
     const groupsById = new Map(groups.map((group) => [group.id, group]));
     if (!groupsById.has(rootGroupId)) {
@@ -67,8 +68,10 @@ export function collectGroupFilePaths(
             paths.push(normalizedPath);
         }
 
-        for (const child of childrenByParent.get(groupId) ?? []) {
-            visit(child.id);
+        if (options.includeSubgroups !== false) {
+            for (const child of childrenByParent.get(groupId) ?? []) {
+                visit(child.id);
+            }
         }
     };
 

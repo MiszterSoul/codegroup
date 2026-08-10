@@ -32,6 +32,21 @@ Normal folders describe where files live. CodeGroup adds bookmark folders that d
 - **Share team-specific file collections** through Git-friendly JSON.
 - **Keep reusable global groups** available across projects.
 
+## Bookmarks, groups, and folders
+
+CodeGroup uses familiar folder ideas without changing the folders on disk:
+
+| CodeGroup concept | Bookmark-style meaning |
+|---|---|
+| File in a group | A bookmark pointing to the original file |
+| Group | A named bookmark collection for a feature, task, or topic |
+| Subgroup | A bookmark folder nested inside another collection |
+| Local group | A bookmark collection stored with the current workspace |
+| Global group | A bookmark collection available across every project |
+| Smart Group | A generated starter collection based on project area or language |
+
+The same file can appear in multiple groups because CodeGroup stores references, not copies. Renaming or moving a tracked file updates its bookmark, and deleting a file can be cleaned from the affected groups. Your Explorer folder structure remains unchanged.
+
 ## Core features
 
 | Feature | What it gives you |
@@ -48,6 +63,8 @@ Normal folders describe where files live. CodeGroup adds bookmark folders that d
 | Smart file tracking | Follow renames and clean up deleted files |
 
 ## Quick start
+
+After a fresh install, VS Code automatically opens the **Getting Started with CodeGroup** walkthrough. It explains the bookmark model and guides you through creating a group, adding files, and reopening a working set. You can revisit it later from **Help → Get Started**.
 
 1. Install **CodeGroup** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer).
 2. Open the **CodeGroup** view inside Explorer.
@@ -173,7 +190,7 @@ Workspace storage example:
 
 ### Main view
 
-![CodeGroup main view](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-main.png)
+![CodeGroup Quick Actions and file bookmark workflow](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-quick-actions.png)
 
 ### Context menu
 
@@ -197,6 +214,8 @@ Workspace storage example:
 | `File Groups: Create Group from Git Changes` | Build a working set from Git changes |
 | `File Groups: Create Subgroup` | Create a nested group |
 | `File Groups: Open Group Editor` | Edit group metadata and membership |
+| `File Groups: Open This Group's Files` | Open only files directly assigned to the selected group |
+| `File Groups: Open Group and Subgroups` | Open files from the selected group and every nested subgroup |
 | `File Groups: Delete Group...` | Delete a group |
 | `File Groups: Edit Summary` | Set a short description |
 | `File Groups: Edit Description` | Add Markdown notes |

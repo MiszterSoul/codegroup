@@ -636,6 +636,18 @@ const FR_TRANSLATIONS: TranslationDictionary = {
   'editor.status.fileMissingOnDisk': 'Ce fichier n’existe plus sur le disque.',
   'editor.status.presetApplied': 'Le préréglage a été appliqué. Enregistrez quand le style du groupe vous convient.',
   'editor.openLabel.addToGroup': 'Ajouter au groupe',
+  'group.accessibility.global': 'Groupe global',
+  'group.accessibility.local': 'Groupe de l’espace de travail',
+  'group.accessibility.pinned': 'Épinglé',
+  'group.accessibility.hasDetails': 'Avec description',
+  'groupPaths.pick': 'Sélectionnez le groupe dont les chemins de fichiers doivent être copiés',
+  'groupPaths.empty': 'Le groupe « {name} » ne contient aucun fichier existant à copier.',
+  'groupPaths.copied': '{count} {fileLabel} du groupe « {name} » copié(s) dans le presse-papiers.',
+  'groupActions.copyPaths.label': '$(copy) Copier les chemins des fichiers',
+  'groupActions.copyPaths.description': 'Copier les fichiers existants de ce groupe et de ses sous-groupes',
+  'editor.template.groupLabel': 'Préréglages de groupe',
+  'editor.actions.openFileAccessible': 'Ouvrir {path}',
+  'editor.actions.removeFileAccessible': 'Retirer {path} du groupe',
   'sort.manual': 'Manuel (glisser-déposer)',
   'sort.nameAsc': 'Nom (A à Z)',
   'sort.nameDesc': 'Nom (Z à A)',
@@ -948,6 +960,18 @@ const DE_TRANSLATIONS: TranslationDictionary = {
   'editor.status.fileMissingOnDisk': 'Diese Datei existiert auf dem Datenträger nicht mehr.',
   'editor.status.presetApplied': 'Preset angewendet. Speichere, wenn dir der Stil der Gruppe gefällt.',
   'editor.openLabel.addToGroup': 'Zur Gruppe hinzufügen',
+  'group.accessibility.global': 'Globale Gruppe',
+  'group.accessibility.local': 'Workspace-Gruppe',
+  'group.accessibility.pinned': 'Angeheftet',
+  'group.accessibility.hasDetails': 'Hat eine Beschreibung',
+  'groupPaths.pick': 'Gruppe auswählen, deren Dateipfade kopiert werden sollen',
+  'groupPaths.empty': 'Die Gruppe „{name}“ enthält keine vorhandenen Dateien zum Kopieren.',
+  'groupPaths.copied': '{count} {fileLabel} aus „{name}“ in die Zwischenablage kopiert.',
+  'groupActions.copyPaths.label': '$(copy) Dateipfade kopieren',
+  'groupActions.copyPaths.description': 'Vorhandene Dateien dieser Gruppe und ihrer Untergruppen kopieren',
+  'editor.template.groupLabel': 'Gruppenvorlagen',
+  'editor.actions.openFileAccessible': '{path} öffnen',
+  'editor.actions.removeFileAccessible': '{path} aus der Gruppe entfernen',
   'sort.manual': 'Manuell (Drag and Drop)',
   'sort.nameAsc': 'Name (A bis Z)',
   'sort.nameDesc': 'Name (Z bis A)',
@@ -1260,6 +1284,18 @@ const HU_TRANSLATIONS: TranslationDictionary = {
   'editor.status.fileMissingOnDisk': 'Ez a fájl már nem létezik a lemezen.',
   'editor.status.presetApplied': 'Az előbeállítás alkalmazva. Ments, ha megfelelő a csoport stílusa.',
   'editor.openLabel.addToGroup': 'Hozzáadás a csoporthoz',
+  'group.accessibility.global': 'Globális csoport',
+  'group.accessibility.local': 'Munkaterület-csoport',
+  'group.accessibility.pinned': 'Rögzítve',
+  'group.accessibility.hasDetails': 'Van leírása',
+  'groupPaths.pick': 'Válaszd ki a csoportot, amelynek fájlútvonalait másolni szeretnéd',
+  'groupPaths.empty': 'A(z) „{name}” csoportban nincs másolható, létező fájl.',
+  'groupPaths.copied': '{count} {fileLabel} útvonala a vágólapra másolva innen: „{name}”.',
+  'groupActions.copyPaths.label': '$(copy) Fájlútvonalak másolása',
+  'groupActions.copyPaths.description': 'A csoport és alcsoportjai létező fájljainak másolása',
+  'editor.template.groupLabel': 'Csoport-előbeállítások',
+  'editor.actions.openFileAccessible': '{path} megnyitása',
+  'editor.actions.removeFileAccessible': '{path} eltávolítása a csoportból',
   'sort.manual': 'Kézi (drag and drop)',
   'sort.nameAsc': 'Név (A-Z)',
   'sort.nameDesc': 'Név (Z-A)',
@@ -1295,7 +1331,19 @@ const ES_TRANSLATIONS: TranslationDictionary = {
   'editor.titleWithName': 'Editar grupo: {name}',
   'editor.hero.title': 'Editor de grupos',
   'editor.settings.title': 'Ajustes del grupo',
-  'editor.membership.title': 'Contenido'
+  'editor.membership.title': 'Contenido',
+  'group.accessibility.global': 'Grupo global',
+  'group.accessibility.local': 'Grupo del espacio de trabajo',
+  'group.accessibility.pinned': 'Fijado',
+  'group.accessibility.hasDetails': 'Tiene descripción',
+  'groupPaths.pick': 'Selecciona el grupo cuyas rutas de archivo quieres copiar',
+  'groupPaths.empty': 'El grupo «{name}» no tiene archivos existentes para copiar.',
+  'groupPaths.copied': 'Se copiaron {count} {fileLabel} de «{name}» al portapapeles.',
+  'groupActions.copyPaths.label': '$(copy) Copiar rutas de archivos',
+  'groupActions.copyPaths.description': 'Copiar archivos existentes de este grupo y sus subgrupos',
+  'editor.template.groupLabel': 'Preajustes de grupo',
+  'editor.actions.openFileAccessible': 'Abrir {path}',
+  'editor.actions.removeFileAccessible': 'Quitar {path} del grupo'
 };
 
 const IT_TRANSLATIONS: TranslationDictionary = {
@@ -1325,7 +1373,19 @@ const IT_TRANSLATIONS: TranslationDictionary = {
   'editor.titleWithName': 'Modifica gruppo: {name}',
   'editor.hero.title': 'Editor gruppo',
   'editor.settings.title': 'Impostazioni gruppo',
-  'editor.membership.title': 'Contenuto'
+  'editor.membership.title': 'Contenuto',
+  'group.accessibility.global': 'Gruppo globale',
+  'group.accessibility.local': 'Gruppo dell’area di lavoro',
+  'group.accessibility.pinned': 'Fissato',
+  'group.accessibility.hasDetails': 'Ha una descrizione',
+  'groupPaths.pick': 'Seleziona il gruppo di cui copiare i percorsi dei file',
+  'groupPaths.empty': 'Il gruppo «{name}» non contiene file esistenti da copiare.',
+  'groupPaths.copied': 'Copiati {count} {fileLabel} da «{name}» negli appunti.',
+  'groupActions.copyPaths.label': '$(copy) Copia percorsi file',
+  'groupActions.copyPaths.description': 'Copia i file esistenti di questo gruppo e dei suoi sottogruppi',
+  'editor.template.groupLabel': 'Preimpostazioni del gruppo',
+  'editor.actions.openFileAccessible': 'Apri {path}',
+  'editor.actions.removeFileAccessible': 'Rimuovi {path} dal gruppo'
 };
 
 const PT_BR_TRANSLATIONS: TranslationDictionary = {
@@ -1355,7 +1415,19 @@ const PT_BR_TRANSLATIONS: TranslationDictionary = {
   'editor.titleWithName': 'Editar grupo: {name}',
   'editor.hero.title': 'Editor de grupo',
   'editor.settings.title': 'Configurações do grupo',
-  'editor.membership.title': 'Conteúdo'
+  'editor.membership.title': 'Conteúdo',
+  'group.accessibility.global': 'Grupo global',
+  'group.accessibility.local': 'Grupo do espaço de trabalho',
+  'group.accessibility.pinned': 'Fixado',
+  'group.accessibility.hasDetails': 'Tem descrição',
+  'groupPaths.pick': 'Selecione o grupo cujos caminhos de arquivo devem ser copiados',
+  'groupPaths.empty': 'O grupo “{name}” não tem arquivos existentes para copiar.',
+  'groupPaths.copied': '{count} {fileLabel} de “{name}” copiado(s) para a área de transferência.',
+  'groupActions.copyPaths.label': '$(copy) Copiar caminhos de arquivos',
+  'groupActions.copyPaths.description': 'Copiar arquivos existentes deste grupo e de seus subgrupos',
+  'editor.template.groupLabel': 'Predefinições de grupo',
+  'editor.actions.openFileAccessible': 'Abrir {path}',
+  'editor.actions.removeFileAccessible': 'Remover {path} do grupo'
 };
 
 const JA_TRANSLATIONS: TranslationDictionary = {
@@ -1385,7 +1457,19 @@ const JA_TRANSLATIONS: TranslationDictionary = {
   'editor.titleWithName': 'グループを編集: {name}',
   'editor.hero.title': 'グループエディター',
   'editor.settings.title': 'グループ設定',
-  'editor.membership.title': '内容'
+  'editor.membership.title': '内容',
+  'group.accessibility.global': 'グローバルグループ',
+  'group.accessibility.local': 'ワークスペースグループ',
+  'group.accessibility.pinned': 'ピン留め済み',
+  'group.accessibility.hasDetails': '説明あり',
+  'groupPaths.pick': 'ファイル パスをコピーするグループを選択してください',
+  'groupPaths.empty': 'グループ「{name}」にはコピーできる既存ファイルがありません。',
+  'groupPaths.copied': '「{name}」から {count} {fileLabel}をクリップボードにコピーしました。',
+  'groupActions.copyPaths.label': '$(copy) ファイル パスをコピー',
+  'groupActions.copyPaths.description': 'このグループとサブグループの既存ファイルをコピーします',
+  'editor.template.groupLabel': 'グループ プリセット',
+  'editor.actions.openFileAccessible': '{path} を開く',
+  'editor.actions.removeFileAccessible': '{path} をグループから削除'
 };
 
 const ZH_CN_TRANSLATIONS: TranslationDictionary = {
@@ -1415,7 +1499,19 @@ const ZH_CN_TRANSLATIONS: TranslationDictionary = {
   'editor.titleWithName': '编辑分组: {name}',
   'editor.hero.title': '分组编辑器',
   'editor.settings.title': '分组设置',
-  'editor.membership.title': '内容'
+  'editor.membership.title': '内容',
+  'group.accessibility.global': '全局分组',
+  'group.accessibility.local': '工作区分组',
+  'group.accessibility.pinned': '已固定',
+  'group.accessibility.hasDetails': '有描述',
+  'groupPaths.pick': '选择要复制文件路径的分组',
+  'groupPaths.empty': '分组“{name}”中没有可复制的现有文件。',
+  'groupPaths.copied': '已将“{name}”中的 {count} 个{fileLabel}复制到剪贴板。',
+  'groupActions.copyPaths.label': '$(copy) 复制文件路径',
+  'groupActions.copyPaths.description': '复制此分组及其子分组中的现有文件',
+  'editor.template.groupLabel': '分组预设',
+  'editor.actions.openFileAccessible': '打开 {path}',
+  'editor.actions.removeFileAccessible': '从分组中移除 {path}'
 };
 
 const TRANSLATIONS: Record<CodeGroupLanguage, TranslationDictionary> = {
@@ -1579,4 +1675,11 @@ export function getLocalizedSmartGroupText(suggestionId: string): { name: string
     default:
       return { name: suggestionId, summary: suggestionId };
   }
+}
+
+export function hasExplicitTranslationForLanguage(
+  language: CodeGroupLanguage,
+  key: TranslationKey
+): boolean {
+  return TRANSLATIONS[language][key] !== undefined;
 }
