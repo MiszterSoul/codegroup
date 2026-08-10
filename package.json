@@ -1,7 +1,7 @@
 {
   "name": "codegroup-file-organizer",
   "displayName": "CodeGroup - File Organizer",
-  "description": "Group related files from any folder into custom collections. Drag & drop, icons, colors, subgroups – like bookmarks for your codebase.",
+  "description": "Organize related files into custom groups in VS Code. Drag & drop files, create subgroups, smart groups and working sets — like bookmarks for your codebase.",
   "version": "1.3.1",
   "publisher": "PeterDev",
   "license": "MIT",
@@ -29,7 +29,15 @@
     "file tabs",
     "organize files",
     "multi-root",
-    "monorepo"
+    "monorepo",
+    "code organization",
+    "code navigation",
+    "working sets",
+    "smart groups",
+    "developer productivity",
+    "vscode sidebar",
+    "explorer",
+    "project files"
   ],
   "galleryBanner": {
     "color": "#5C6BC0",
