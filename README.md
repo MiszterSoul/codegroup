@@ -1,145 +1,145 @@
 <!-- markdownlint-disable MD022 MD032 MD060 -->
-# CodeGroup - File Organizer
+<div align="center">
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/PeterDev.codegroup-file-organizer?style=flat-square&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/PeterDev.codegroup-file-organizer?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
-[![Open VSX Installs](https://img.shields.io/open-vsx/dt/PeterDev/codegroup-file-organizer?style=flat-square)](https://open-vsx.org/extension/PeterDev/codegroup-file-organizer)
-[![GitHub stars](https://img.shields.io/github/stars/MiszterSoul/codegroup?style=flat-square)](https://github.com/MiszterSoul/codegroup)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+# CodeGroup
 
-> **Organize scattered files into named groups – like bookmarks for your codebase.**
+### Organize your VS Code files into groups — without moving them.
 
-![CodeGroup Demo GIF](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/demo.gif)
+Create persistent file groups, nested subgroups, smart working sets, global groups, and shareable collections directly inside the VS Code Explorer.
 
----
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/PeterDev.codegroup-file-organizer?style=for-the-badge&label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/PeterDev.codegroup-file-organizer?style=for-the-badge&label=Installs)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
+[![Open VSX](https://img.shields.io/open-vsx/dt/PeterDev/codegroup-file-organizer?style=for-the-badge&label=Open%20VSX)](https://open-vsx.org/extension/PeterDev/codegroup-file-organizer)
+[![GitHub stars](https://img.shields.io/github/stars/MiszterSoul/codegroup?style=for-the-badge)](https://github.com/MiszterSoul/codegroup)
 
-## ⚡ What It Does
+**[Install from Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)** · **[Open VSX](https://open-vsx.org/extension/PeterDev/codegroup-file-organizer)** · **[Report an issue](https://github.com/MiszterSoul/codegroup/issues)**
 
-- 📁 **Create custom file groups** – Group related files from any folder into named collections
-- 🎨 **Customize with colors & icons** – 120+ icons, hex colors, badges visible in tabs & explorer
-- 🖱️ **Drag & drop everything** – Files, folders, groups, subgroups – all draggable
+</div>
 
----
+![CodeGroup demo](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/demo.gif)
 
-## 🚀 Quick Start
+## Why CodeGroup?
 
-1. Open **CodeGroup** in the Explorer sidebar
-2. Click **+** to create a new group
-3. Drag files from Explorer into your group
-4. Done! Click a file to open it, or "Open All" to open the entire group
+Large projects rarely fit neatly into folders. A single feature can span routes, components, tests, services, configs, and database files.
 
----
+CodeGroup lets you collect those related files into reusable groups without changing your project structure.
 
-## ✨ Features
+- **Keep feature files together** even when they live in different directories.
+- **Build working sets instantly** from open editors or current Git changes.
+- **Navigate large codebases faster** with Quick Open and pinned groups.
+- **Share team-specific file collections** through Git-friendly JSON.
+- **Keep reusable global groups** available across projects.
 
-### 📁 Groups & Subgroups
-- Create named groups to organize related files
-- Create **subgroups** for hierarchical organization (e.g., "Backend" → "API", "Database")
-- Add files from any folder in your workspace
-- Multi-select support: add multiple files at once
+## Core features
 
-### 🎨 Customization
-- **120+ icons**: folder, rocket, flame, star, key, database, and more
-- **Colors**: extended theme palette plus any **custom hex color** (e.g., `#FF5733`)
-- **Badges**: Custom 1-2 character badge for file decorations
-- **Descriptions**: Add notes with Markdown support
-- **Group Editor**: Update the main settings for a group in one editor panel instead of stepping through separate prompts
-- **Presets**: Apply one-click Frontend, Backend, Scripts, Docs, or Research styling presets inside the editor
+| Feature | What it gives you |
+|---|---|
+| File groups & subgroups | Organize related files into nested collections |
+| Drag & drop | Move files, folders, tabs, groups, and subgroups naturally |
+| Smart Groups | Auto-build groups by project area or language family |
+| Working Sets | Create groups from open editors or Git changes |
+| Quick Open | Search grouped files, group names, notes, and paths |
+| Global Groups | Reuse important groups across different workspaces |
+| Group customization | 120+ icons, colors, badges, descriptions, presets |
+| Shareable JSON | Export/import complete group trees |
+| Git-friendly storage | Store workspace groups in `.vscode/file-groups.json` |
+| Smart file tracking | Follow renames and clean up deleted files |
 
-### 🖱️ Drag & Drop
-- Drag files from Explorer into groups
-- Drag tabs into groups
-- Drag groups into Copilot Chat to attach multiple files at once
-- Drag a group into the editor to open its files instantly
-- Drag groups onto other groups to create subgroups
-- Drag subgroups to empty space to move them back to root
-- Reorder files within groups
+## Quick start
 
-### ⚡ Quick Actions
-- **Open All**: Open all files in a group (including subgroups) with improved speed
-- **Close All**: Close only files from a specific group
-- **Quick Open**: Search every grouped file from one picker, with recently opened CodeGroup files pinned at the top
-- **Quick Actions Section**: Create, import, search, or auto-build groups from a persistent section at the bottom of the tree
-- **Pin groups**: Keep important groups at the top (📌)
-- **Expand/Collapse All**: Quick navigation in title bar
+1. Install **CodeGroup** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer).
+2. Open the **CodeGroup** view inside Explorer.
+3. Click **+** to create a group.
+4. Drag files from Explorer or open tabs into it.
+5. Click a file to open it, or use **Open All** for the full working set.
 
-### ✨ Smart Groups & Sharing
-- **Create Smart Groups**: Auto-group the workspace by project areas like frontend, backend, docs, tests, scripts, and source core
-- **Language-based Grouping**: Generate groups from language families like TypeScript, JavaScript, styles, docs, config, media, and more
-- **Shareable Group JSON**: Export a whole group tree as JSON, copy it to the clipboard, and import it in another workspace later
-- **More Group Actions**: The group context menu stays lean, while a single action hub exposes rename, duplicate, move, sort, export, and other advanced operations
+That is enough to start. Everything else is optional.
 
-### ⚙️ Working Sets
-- **Create from Open Editors**: Turn your currently open tabs into a group instantly
-- **Create from Git Changes**: Capture your uncommitted work as a review or bugfix group
-- Start from a generated working set, then rename or refine it like any other group
+## Smart Groups
 
-### 🔄 Smart File Tracking
-- Auto-handles file renames – files stay in groups with updated names
-- Auto-removes deleted files from groups
-- "Clean Up Missing Files" command for manual cleanup
-- Auto-cleanup prompt on startup
+CodeGroup can generate useful groups automatically instead of making you organize everything manually.
 
-### 💾 Git-Friendly Storage
-- Groups saved to `.vscode/file-groups.json`
-- Share group configs with your team via Git
-- Relative paths for cross-machine compatibility
-- Creator attribution – see who set up each group
+### Project-area grouping
 
-### 🌐 Global Groups
-- **Create global groups** available across all your projects
-- Stored in AppData (global storage), not tied to any workspace
-- Perfect for common utilities, documentation, or frequently accessed files
-- **Toggle visibility** per project – hide global groups in specific workspaces
-- Visual indicator (🌐) to distinguish global from local groups
-- Moving any group (drag or context command) relocates the entire tree to the target storage so files and child groups never split between configs.
-- Global groups now behave exactly like local groups – same context menus, drag operations, open/close, and decoration behavior while keeping path handling (absolute vs. relative) consistent.
-- Right-click an empty area in the File Groups view to create a new root group without selecting an existing node.
+Create groups such as:
 
----
+- Frontend
+- Backend
+- Tests
+- Scripts
+- Documentation
+- Source core
 
-## 📋 Commands
+### Language-family grouping
 
-All commands available via Command Palette (`Ctrl+Shift+P`):
+Generate groups for TypeScript, JavaScript, styles, documentation, configuration, media, and more.
 
-| Command | Description |
-|---------|-------------|
-| `File Groups: Quick Open from Groups` | Search and open any grouped file, with recent CodeGroup files first |
-| `File Groups: Create Smart Groups` | Auto-build groups by project areas or language families |
-| `File Groups: Import Shared Group` | Import a shareable CodeGroup JSON from clipboard or file |
-| `File Groups: Export Group as Shareable JSON` | Copy a group tree as reusable JSON |
-| `File Groups: More Group Actions...` | Open the advanced action hub for rename, duplicate, move, sort, and export |
-| `File Groups: Create Group` | Create a new root file group |
-| `File Groups: Create Group from Open Editors` | Create a group from the files currently open in tabs |
-| `File Groups: Create Group from Git Changes` | Create a group from uncommitted Git changes in the current workspace |
-| `File Groups: Create Subgroup` | Create a subgroup under selected group |
-| `File Groups: Open Group Editor` | Edit name, icon, color, badge, descriptions, scope, and file membership in one panel |
-| `File Groups: Delete Group...` | Delete a group (with picker) |
-| `File Groups: Edit Summary` | Set short description for a group |
-| `File Groups: Edit Description` | Add longer Markdown notes |
-| `File Groups: Pin/Unpin Group` | Pin group to top |
-| `File Groups: Set Badge Text` | Custom badge for file decorations |
-| `File Groups: Find Duplicate Files` | Find files in multiple groups |
-| `File Groups: Clean Up Missing Files` | Remove deleted files |
-| `File Groups: Expand/Collapse All` | Navigation helpers |
-| `File Groups: Create Global Group` | Create a global group (available in all projects) |
-| `File Groups: Toggle Hide Global Groups` | Show/hide global groups in current project |
+Generated groups remain normal editable CodeGroup groups, so you can rename, recolor, reorder, nest, or extend them afterward.
 
----
+## Working Sets
 
-## 📸 Screenshots
+Turn temporary development context into a reusable group in one action.
 
-### Main View
-![Main View](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-main.png)
+### From open editors
 
-### Context Menu
-![Context Menu](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-context-menu.png)
+Capture your currently open tabs into a group.
 
----
+Useful for:
 
-## 💾 Storage Format
+- feature work
+- debugging sessions
+- refactors
+- research
 
-Groups are saved to `.vscode/file-groups.json`:
+### From Git changes
+
+Create a group from uncommitted files in the current workspace.
+
+Useful for:
+
+- PR review
+- bugfix context
+- release preparation
+- keeping a change set visible while working
+
+## Drag & drop
+
+CodeGroup supports drag & drop across the workflow:
+
+- Explorer files → groups
+- open tabs → groups
+- groups → groups to create subgroups
+- subgroups → root
+- files → reorder inside groups
+- groups → editor to open all files
+- groups → Copilot Chat to attach multiple files at once
+
+## Global Groups
+
+Create groups that are available across projects instead of being tied to a single workspace.
+
+Typical uses:
+
+- frequently used scripts
+- shared documentation
+- utility files
+- reference projects
+
+Global groups can be hidden per workspace and can be moved back to local workspace storage when needed.
+
+## Sharing and storage
+
+Workspace groups are stored in:
+
+```text
+.vscode/file-groups.json
+```
+
+Paths are relative, so the configuration can be committed to Git and shared with a team.
+
+You can also export an individual group tree as shareable JSON and import it elsewhere.
+
+Example:
 
 ```json
 {
@@ -159,96 +159,112 @@ Groups are saved to `.vscode/file-groups.json`:
 }
 ```
 
----
+## Screenshots
 
-## 📦 Requirements
+### Main view
 
-- VS Code 1.74.0 or higher
+![CodeGroup main view](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-main.png)
 
-### Development and release
+### Context menu
 
-Development and packaging require Node.js 22 or newer. Install the exact locked dependencies first:
+![CodeGroup context menu](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-context-menu.png)
+
+## Commands
+
+<details>
+<summary><strong>Show Command Palette commands</strong></summary>
+
+| Command | Description |
+|---|---|
+| `File Groups: Quick Open from Groups` | Search grouped files, with recent files first |
+| `File Groups: Create Smart Groups` | Auto-build groups by project area or language family |
+| `File Groups: Import Shared Group` | Import shareable CodeGroup JSON |
+| `File Groups: Export Group as Shareable JSON` | Export a reusable group tree |
+| `File Groups: More Group Actions...` | Rename, duplicate, move, sort, export, and more |
+| `File Groups: Create Group` | Create a root group |
+| `File Groups: Create Group from Open Editors` | Build a working set from open tabs |
+| `File Groups: Create Group from Git Changes` | Build a working set from Git changes |
+| `File Groups: Create Subgroup` | Create a nested group |
+| `File Groups: Open Group Editor` | Edit group metadata and membership |
+| `File Groups: Delete Group...` | Delete a group |
+| `File Groups: Edit Summary` | Set a short description |
+| `File Groups: Edit Description` | Add Markdown notes |
+| `File Groups: Pin/Unpin Group` | Keep important groups at the top |
+| `File Groups: Set Badge Text` | Add a 1–2 character badge |
+| `File Groups: Find Duplicate Files` | Find files used in multiple groups |
+| `File Groups: Clean Up Missing Files` | Remove deleted files |
+| `File Groups: Expand/Collapse All` | Expand or collapse the tree |
+| `File Groups: Create Global Group` | Create a cross-project group |
+| `File Groups: Toggle Hide Global Groups` | Show/hide global groups for a workspace |
+
+</details>
+
+## Requirements
+
+- VS Code 1.74.0 or newer
+
+## Development
+
+CodeGroup is written in TypeScript.
+
+### Requirements
+
+- Node.js 22+
+- npm
+- VS Code 1.74+
+
+### Setup
 
 ```bash
+git clone https://github.com/MiszterSoul/codegroup.git
+cd codegroup
 npm ci
+npm run verify
 ```
 
-| Command | Purpose |
-|---------|---------|
-| `npm run compile` | Type-check, lint, and create a development bundle with a source map |
-| `npm test` | Run the fast unit test suite |
-| `npm run verify` | Run type checks, lint, and all unit tests |
-| `npm run test:extension` | Build and activate CodeGroup in an isolated VS Code 1.74 test host |
-| `npm run build` | Run all verification and create the minified production bundle |
-| `npm run package:list` | Show exactly which files will be included in the extension |
-| `npm run package:vsix` | Verify, build, and create `dist/codegroup-file-organizer.vsix` |
+### Useful commands
 
-Install the packaged extension locally for a final manual check:
+| Command | Purpose |
+|---|---|
+| `npm run compile` | Type-check, lint, and create a development bundle |
+| `npm test` | Run the fast unit test suite |
+| `npm run verify` | Run type checks, lint, and unit tests |
+| `npm run test:extension` | Test inside an isolated VS Code host |
+| `npm run build` | Create the production bundle |
+| `npm run package:list` | Inspect packaged extension files |
+| `npm run package:vsix` | Build a local `.vsix` package |
+
+Install the local package with:
 
 ```bash
 code --install-extension dist/codegroup-file-organizer.vsix --force
 ```
 
-Share the `.vsix` file directly, or publish it to the VS Code Marketplace after updating the version in `package.json`:
+## Contributing
 
-```bash
-npm run vsce:publish
-```
+Contributions are welcome.
 
-Marketplace publishing requires a Personal Access Token and publisher access for `PeterDev`. The first extension-host test also downloads VS Code 1.74 and therefore requires network access.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and contribution guidelines.
 
----
+- [Report a bug](https://github.com/MiszterSoul/codegroup/issues/new?labels=bug)
+- [Request a feature](https://github.com/MiszterSoul/codegroup/issues/new?labels=enhancement)
+- [Browse good first issues](https://github.com/MiszterSoul/codegroup/labels/good%20first%20issue)
+- [Open pull requests](https://github.com/MiszterSoul/codegroup/pulls)
 
-## 🐛 Known Issues
+## Releases
 
-None at this time. Please report issues on [GitHub](https://github.com/MiszterSoul/codegroup/issues).
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
----
+The current extension manifest version is published through the VS Code Marketplace and Open VSX release flow.
 
-## 📝 Release Notes
+## License
 
-See [CHANGELOG.md](CHANGELOG.md) for full release history.
-
-### 1.3.0
-- Added persistent Quick Actions under the tree so create/import/smart-group flows stay visible even after you already have groups
-- Added Smart Groups for project areas and language families
-- Added shareable group export/import via JSON
-- Added editor presets and extra color options for faster setup
-- Reduced the group context menu and moved advanced actions into one `More Group Actions...` hub
-
-### 1.1.2
-- Added drag and drop from groups to Copilot Chat, including multiple files in one drop
-- Improved `Open All Files` speed significantly
-- Dragging a group into the editor now opens all group files instantly
-
-### 1.2.0
-- Added `Quick Open from Groups` to search grouped files by filename, group name, notes, or path
-- Recently opened CodeGroup files now float to the top for faster repeat navigation
-- Missing files opened from CodeGroup now offer cleanup immediately instead of failing silently
-
-### 1.1.1
-- File items now show up to the last 2 parent folders next to filename for easier disambiguation (for example, repeated `route.ts` files)
-- Full path on hover remains unchanged
-
-### 1.1.0
-- Added global groups available across projects
-- Added quick create group action from empty area context menu
----
-
-## 🤝 Contributing
-
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-- 🐛 [Report a bug](https://github.com/MiszterSoul/codegroup/issues/new?labels=bug)
-- 💡 [Request a feature](https://github.com/MiszterSoul/codegroup/issues/new?labels=enhancement)
-- 🔧 [Submit a PR](https://github.com/MiszterSoul/codegroup/pulls)
+[MIT](LICENSE)
 
 ---
 
-## 📄 License
+<div align="center">
 
-[MIT License](LICENSE)
+If CodeGroup saves you time, **[star the repository](https://github.com/MiszterSoul/codegroup)** and **[leave a Marketplace review](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)**.
 
----
-
-**⭐ If you find this extension useful, please leave a review on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)!**
+</div>
