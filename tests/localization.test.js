@@ -16,10 +16,16 @@ const localeFiles = [
 ];
 
 const releaseKeys = [
+  'command.openGettingStarted.title',
+  'command.editGroupTags.title',
+  'command.editFileTags.title',
   'command.openDirect.title',
   'command.openAll.title',
   'walkthrough.gettingStarted.title',
   'walkthrough.gettingStarted.description',
+  'walkthrough.step.language.title',
+  'walkthrough.step.language.description',
+  'walkthrough.step.language.alt',
   'walkthrough.step.bookmarks.title',
   'walkthrough.step.bookmarks.description',
   'walkthrough.step.bookmarks.alt',
@@ -31,10 +37,13 @@ const releaseKeys = [
   'walkthrough.step.add.alt',
   'walkthrough.step.tools.title',
   'walkthrough.step.tools.description',
-  'walkthrough.step.tools.alt'
+  'walkthrough.step.tools.alt',
+  'walkthrough.step.share.title',
+  'walkthrough.step.share.description',
+  'walkthrough.step.share.alt'
 ];
 
-test('all supported package locales include the 1.4.1 onboarding and open-action strings', () => {
+test('all supported package locales include onboarding, tagging, and open-action strings', () => {
   for (const localeFile of localeFiles) {
     const translations = JSON.parse(
       fs.readFileSync(path.join(__dirname, '..', localeFile), 'utf8')

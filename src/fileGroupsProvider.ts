@@ -112,6 +112,17 @@ export class FileGroupsProvider implements vscode.TreeDataProvider<FileGroupTree
     private getQuickActionItems(): FileGroupTreeItem[] {
         return [
             new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
+                id: 'getting-started',
+                label: t('tree.action.gettingStarted.label'),
+                description: t('tree.action.gettingStarted.description'),
+                detail: t('tree.action.gettingStarted.detail'),
+                iconId: 'book',
+                command: {
+                    command: 'fileGroups.openGettingStarted',
+                    title: t('tree.action.gettingStarted.label')
+                }
+            }),
+            new FileGroupTreeItem('action', null, undefined, false, 0, 0, [], undefined, {
                 id: 'create-group',
                 label: t('tree.action.createGroup.label'),
                 description: t('tree.action.createGroup.description'),

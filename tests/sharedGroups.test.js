@@ -12,7 +12,8 @@ describe('shared groups', () => {
         name: 'Frontend',
         icon: 'paintcan',
         color: 'charts.blue',
-        files: [{ path: 'c:/repo/src/app.tsx', name: 'app.tsx' }],
+        tags: ['frontend'],
+        files: [{ path: 'c:/repo/src/app.tsx', name: 'app.tsx', tags: ['entrypoint'] }],
         order: 0
       },
       {
@@ -38,6 +39,8 @@ describe('shared groups', () => {
 
     assert.equal(payload.groups.length, 2);
     assert.equal(payload.groups[0]?.files[0]?.path, 'src/app.tsx');
+    assert.deepEqual(payload.groups[0]?.tags, ['frontend']);
+    assert.deepEqual(payload.groups[0]?.files[0]?.tags, ['entrypoint']);
     assert.equal(payload.groups[1]?.parentId, 'root');
     assert.equal(isSharedGroupPayload(payload), true);
   });
@@ -103,7 +106,8 @@ describe('shared groups', () => {
           name: 'Frontend',
           icon: 'paintcan',
           color: 'charts.blue',
-          files: [{ path: 'src/app.tsx', name: 'app.tsx' }]
+          tags: ['Front End'],
+          files: [{ path: 'src/app.tsx', name: 'app.tsx', tags: ['Entry Point'] }]
         },
         {
           id: 'child',
@@ -123,6 +127,8 @@ describe('shared groups', () => {
     assert.equal(imported[0]?.id, 'id-1');
     assert.equal(imported[1]?.parentId, 'id-1');
     assert.equal(imported[0]?.files[0]?.path.replace(/\\/g, '/'), 'c:/repo/src/app.tsx');
+    assert.deepEqual(imported[0]?.tags, ['front-end']);
+    assert.deepEqual(imported[0]?.files[0]?.tags, ['entry-point']);
     assert.equal(imported[0]?.order, 3);
     assert.equal(imported[1]?.order, 4);
   });

@@ -326,7 +326,16 @@ const EN_TRANSLATIONS = {
   'sort.nameDesc': 'Name (Z to A)',
   'sort.dateAsc': 'Date Modified (Oldest First)',
   'sort.dateDesc': 'Date Modified (Newest First)',
-  'sort.type': 'File Type (Extension)'
+  'sort.type': 'File Type (Extension)',
+  'tree.action.gettingStarted.label': 'Open Getting Started',
+  'tree.action.gettingStarted.description': 'Reopen the CodeGroup guide',
+  'tree.action.gettingStarted.detail': 'Learn the bookmark model and complete the first group workflow at any time.',
+  'tags.group.prompt': 'Tags for group "{name}"',
+  'tags.file.prompt': 'Tags for bookmark "{name}"',
+  'tags.placeholder': 'Comma-separated, for example: frontend, urgent, review',
+  'tags.updated': 'Tags updated.',
+  'editor.tags.label': 'Tags',
+  'editor.tags.hint': 'Comma-separated labels are searchable in Quick Open.'
 } as const;
 
 type TranslationDictionary = Partial<Record<keyof typeof EN_TRANSLATIONS, string>>;
@@ -653,7 +662,16 @@ const FR_TRANSLATIONS: TranslationDictionary = {
   'sort.nameDesc': 'Nom (Z à A)',
   'sort.dateAsc': 'Date de modification (plus ancien d’abord)',
   'sort.dateDesc': 'Date de modification (plus récent d’abord)',
-  'sort.type': 'Type de fichier (extension)'
+  'sort.type': 'Type de fichier (extension)',
+  'tree.action.gettingStarted.label': 'Ouvrir le guide de démarrage',
+  'tree.action.gettingStarted.description': 'Rouvrir le guide CodeGroup',
+  'tree.action.gettingStarted.detail': 'Revoir à tout moment le modèle de favoris et la création du premier groupe.',
+  'tags.group.prompt': 'Étiquettes du groupe « {name} »',
+  'tags.file.prompt': 'Étiquettes du favori « {name} »',
+  'tags.placeholder': 'Séparées par des virgules, par exemple : frontend, urgent, revue',
+  'tags.updated': 'Étiquettes mises à jour.',
+  'editor.tags.label': 'Étiquettes',
+  'editor.tags.hint': 'Les étiquettes séparées par des virgules sont recherchables dans l’ouverture rapide.'
 };
 
 const DE_TRANSLATIONS: TranslationDictionary = {
@@ -977,7 +995,16 @@ const DE_TRANSLATIONS: TranslationDictionary = {
   'sort.nameDesc': 'Name (Z bis A)',
   'sort.dateAsc': 'Änderungsdatum (älteste zuerst)',
   'sort.dateDesc': 'Änderungsdatum (neueste zuerst)',
-  'sort.type': 'Dateityp (Erweiterung)'
+  'sort.type': 'Dateityp (Erweiterung)',
+  'tree.action.gettingStarted.label': 'Erste Schritte öffnen',
+  'tree.action.gettingStarted.description': 'CodeGroup-Anleitung erneut öffnen',
+  'tree.action.gettingStarted.detail': 'Lesezeichenmodell und ersten Gruppenablauf jederzeit erneut ansehen.',
+  'tags.group.prompt': 'Tags für Gruppe „{name}“',
+  'tags.file.prompt': 'Tags für Lesezeichen „{name}“',
+  'tags.placeholder': 'Kommagetrennt, zum Beispiel: frontend, dringend, review',
+  'tags.updated': 'Tags aktualisiert.',
+  'editor.tags.label': 'Tags',
+  'editor.tags.hint': 'Kommagetrennte Tags sind in Schnell öffnen durchsuchbar.'
 };
 
 const HU_TRANSLATIONS: TranslationDictionary = {
@@ -1301,7 +1328,16 @@ const HU_TRANSLATIONS: TranslationDictionary = {
   'sort.nameDesc': 'Név (Z-A)',
   'sort.dateAsc': 'Módosítás dátuma (legrégebbi elöl)',
   'sort.dateDesc': 'Módosítás dátuma (legújabb elöl)',
-  'sort.type': 'Fájltípus (kiterjesztés)'
+  'sort.type': 'Fájltípus (kiterjesztés)',
+  'tree.action.gettingStarted.label': 'Első lépések megnyitása',
+  'tree.action.gettingStarted.description': 'A CodeGroup útmutató újbóli megnyitása',
+  'tree.action.gettingStarted.detail': 'A könyvjelzőmodell és az első csoport munkafolyamata bármikor újra megtekinthető.',
+  'tags.group.prompt': 'A(z) „{name}” csoport címkéi',
+  'tags.file.prompt': 'A(z) „{name}” könyvjelző címkéi',
+  'tags.placeholder': 'Vesszővel elválasztva, például: frontend, sürgős, ellenőrzés',
+  'tags.updated': 'Címkék frissítve.',
+  'editor.tags.label': 'Címkék',
+  'editor.tags.hint': 'A vesszővel elválasztott címkék kereshetők a gyors megnyitásban.'
 };
 
 const ES_TRANSLATIONS: TranslationDictionary = {
@@ -1343,7 +1379,16 @@ const ES_TRANSLATIONS: TranslationDictionary = {
   'groupActions.copyPaths.description': 'Copiar archivos existentes de este grupo y sus subgrupos',
   'editor.template.groupLabel': 'Preajustes de grupo',
   'editor.actions.openFileAccessible': 'Abrir {path}',
-  'editor.actions.removeFileAccessible': 'Quitar {path} del grupo'
+  'editor.actions.removeFileAccessible': 'Quitar {path} del grupo',
+  'tree.action.gettingStarted.label': 'Abrir Primeros pasos',
+  'tree.action.gettingStarted.description': 'Volver a abrir la guía de CodeGroup',
+  'tree.action.gettingStarted.detail': 'Revisa el modelo de marcadores y el flujo del primer grupo cuando quieras.',
+  'tags.group.prompt': 'Etiquetas del grupo «{name}»',
+  'tags.file.prompt': 'Etiquetas del marcador «{name}»',
+  'tags.placeholder': 'Separadas por comas, por ejemplo: frontend, urgente, revisión',
+  'tags.updated': 'Etiquetas actualizadas.',
+  'editor.tags.label': 'Etiquetas',
+  'editor.tags.hint': 'Las etiquetas separadas por comas se pueden buscar en Apertura rápida.'
 };
 
 const IT_TRANSLATIONS: TranslationDictionary = {
@@ -1385,7 +1430,16 @@ const IT_TRANSLATIONS: TranslationDictionary = {
   'groupActions.copyPaths.description': 'Copia i file esistenti di questo gruppo e dei suoi sottogruppi',
   'editor.template.groupLabel': 'Preimpostazioni del gruppo',
   'editor.actions.openFileAccessible': 'Apri {path}',
-  'editor.actions.removeFileAccessible': 'Rimuovi {path} dal gruppo'
+  'editor.actions.removeFileAccessible': 'Rimuovi {path} dal gruppo',
+  'tree.action.gettingStarted.label': 'Apri Introduzione',
+  'tree.action.gettingStarted.description': 'Riapri la guida di CodeGroup',
+  'tree.action.gettingStarted.detail': 'Rivedi in qualsiasi momento il modello dei segnalibri e il flusso del primo gruppo.',
+  'tags.group.prompt': 'Tag del gruppo «{name}»',
+  'tags.file.prompt': 'Tag del segnalibro «{name}»',
+  'tags.placeholder': 'Separati da virgole, ad esempio: frontend, urgente, revisione',
+  'tags.updated': 'Tag aggiornati.',
+  'editor.tags.label': 'Tag',
+  'editor.tags.hint': 'I tag separati da virgole sono ricercabili in Apertura rapida.'
 };
 
 const PT_BR_TRANSLATIONS: TranslationDictionary = {
@@ -1427,7 +1481,16 @@ const PT_BR_TRANSLATIONS: TranslationDictionary = {
   'groupActions.copyPaths.description': 'Copiar arquivos existentes deste grupo e de seus subgrupos',
   'editor.template.groupLabel': 'Predefinições de grupo',
   'editor.actions.openFileAccessible': 'Abrir {path}',
-  'editor.actions.removeFileAccessible': 'Remover {path} do grupo'
+  'editor.actions.removeFileAccessible': 'Remover {path} do grupo',
+  'tree.action.gettingStarted.label': 'Abrir Primeiros passos',
+  'tree.action.gettingStarted.description': 'Reabrir o guia do CodeGroup',
+  'tree.action.gettingStarted.detail': 'Reveja o modelo de favoritos e o fluxo do primeiro grupo a qualquer momento.',
+  'tags.group.prompt': 'Tags do grupo “{name}”',
+  'tags.file.prompt': 'Tags do favorito “{name}”',
+  'tags.placeholder': 'Separadas por vírgulas, por exemplo: frontend, urgente, revisão',
+  'tags.updated': 'Tags atualizadas.',
+  'editor.tags.label': 'Tags',
+  'editor.tags.hint': 'Tags separadas por vírgulas podem ser pesquisadas na Abertura rápida.'
 };
 
 const JA_TRANSLATIONS: TranslationDictionary = {
@@ -1469,7 +1532,16 @@ const JA_TRANSLATIONS: TranslationDictionary = {
   'groupActions.copyPaths.description': 'このグループとサブグループの既存ファイルをコピーします',
   'editor.template.groupLabel': 'グループ プリセット',
   'editor.actions.openFileAccessible': '{path} を開く',
-  'editor.actions.removeFileAccessible': '{path} をグループから削除'
+  'editor.actions.removeFileAccessible': '{path} をグループから削除',
+  'tree.action.gettingStarted.label': '入門ガイドを開く',
+  'tree.action.gettingStarted.description': 'CodeGroup ガイドをもう一度開く',
+  'tree.action.gettingStarted.detail': 'ブックマークモデルと最初のグループ作成手順をいつでも確認できます。',
+  'tags.group.prompt': 'グループ「{name}」のタグ',
+  'tags.file.prompt': 'ブックマーク「{name}」のタグ',
+  'tags.placeholder': 'カンマ区切り。例: frontend, urgent, review',
+  'tags.updated': 'タグを更新しました。',
+  'editor.tags.label': 'タグ',
+  'editor.tags.hint': 'カンマ区切りのタグはクイックオープンで検索できます。'
 };
 
 const ZH_CN_TRANSLATIONS: TranslationDictionary = {
@@ -1511,7 +1583,16 @@ const ZH_CN_TRANSLATIONS: TranslationDictionary = {
   'groupActions.copyPaths.description': '复制此分组及其子分组中的现有文件',
   'editor.template.groupLabel': '分组预设',
   'editor.actions.openFileAccessible': '打开 {path}',
-  'editor.actions.removeFileAccessible': '从分组中移除 {path}'
+  'editor.actions.removeFileAccessible': '从分组中移除 {path}',
+  'tree.action.gettingStarted.label': '打开入门指南',
+  'tree.action.gettingStarted.description': '重新打开 CodeGroup 指南',
+  'tree.action.gettingStarted.detail': '随时重新查看书签模型和第一个分组工作流。',
+  'tags.group.prompt': '分组“{name}”的标签',
+  'tags.file.prompt': '书签“{name}”的标签',
+  'tags.placeholder': '用逗号分隔，例如：frontend, urgent, review',
+  'tags.updated': '标签已更新。',
+  'editor.tags.label': '标签',
+  'editor.tags.hint': '逗号分隔的标签可在快速打开中搜索。'
 };
 
 const TRANSLATIONS: Record<CodeGroupLanguage, TranslationDictionary> = {

@@ -2,7 +2,7 @@
   "name": "codegroup-file-organizer",
   "displayName": "CodeGroup - File Bookmarks & Organizer",
   "description": "Bookmark and organize related files into custom groups in VS Code. Create bookmark folders, smart groups, and working sets without moving files.",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "publisher": "PeterDev",
   "license": "MIT",
   "icon": "icon.png",
@@ -59,6 +59,19 @@
   ],
   "activationEvents": [],
   "main": "./out/extension.js",
+  "browser": "./out/browserExtension.js",
+  "extensionKind": [
+    "workspace",
+    "ui"
+  ],
+  "capabilities": {
+    "virtualWorkspaces": {
+      "supported": true
+    },
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
   "contributes": {
     "views": {
       "explorer": [
@@ -77,11 +90,23 @@
         "description": "%walkthrough.gettingStarted.description%",
         "steps": [
           {
+            "id": "choose-language",
+            "title": "%walkthrough.step.language.title%",
+            "description": "%walkthrough.step.language.description%",
+            "media": {
+              "image": "images/walkthrough-language.png",
+              "altText": "%walkthrough.step.language.alt%"
+            },
+            "completionEvents": [
+              "onCommand:fileGroups.changeLanguage"
+            ]
+          },
+          {
             "id": "understand-bookmarks",
             "title": "%walkthrough.step.bookmarks.title%",
             "description": "%walkthrough.step.bookmarks.description%",
             "media": {
-              "image": "images/screenshot-quick-actions.png",
+              "image": "images/walkthrough-bookmarks.png",
               "altText": "%walkthrough.step.bookmarks.alt%"
             },
             "completionEvents": [
@@ -93,7 +118,7 @@
             "title": "%walkthrough.step.create.title%",
             "description": "%walkthrough.step.create.description%",
             "media": {
-              "image": "images/screenshot-quick-actions.png",
+              "image": "images/walkthrough-create-group.png",
               "altText": "%walkthrough.step.create.alt%"
             },
             "completionEvents": [
@@ -105,7 +130,7 @@
             "title": "%walkthrough.step.add.title%",
             "description": "%walkthrough.step.add.description%",
             "media": {
-              "image": "images/screenshot-group-editor.png",
+              "image": "images/walkthrough-add-files.png",
               "altText": "%walkthrough.step.add.alt%"
             },
             "completionEvents": [
@@ -119,18 +144,36 @@
             "title": "%walkthrough.step.tools.title%",
             "description": "%walkthrough.step.tools.description%",
             "media": {
-              "image": "images/screenshot-group-editor.png",
+              "image": "images/walkthrough-tools.png",
               "altText": "%walkthrough.step.tools.alt%"
             },
             "completionEvents": [
               "onCommand:fileGroups.openGroupEditor",
               "onCommand:fileGroups.quickOpen"
             ]
+          },
+          {
+            "id": "share-codegroup",
+            "title": "%walkthrough.step.share.title%",
+            "description": "%walkthrough.step.share.description%",
+            "media": {
+              "image": "images/walkthrough-share.png",
+              "altText": "%walkthrough.step.share.alt%"
+            },
+            "completionEvents": [
+              "onCommand:fileGroups.exportSharedGroup"
+            ]
           }
         ]
       }
     ],
     "commands": [
+      {
+        "command": "fileGroups.openGettingStarted",
+        "title": "%command.openGettingStarted.title%",
+        "icon": "$(book)",
+        "category": "%category.fileGroups%"
+      },
       {
         "command": "fileGroups.changeLanguage",
         "title": "%command.changeLanguage.title%",
@@ -219,6 +262,18 @@
         "command": "fileGroups.openGroupEditor",
         "title": "%command.openGroupEditor.title%",
         "icon": "$(settings-gear)",
+        "category": "%category.fileGroups%"
+      },
+      {
+        "command": "fileGroups.editGroupTags",
+        "title": "%command.editGroupTags.title%",
+        "icon": "$(tag)",
+        "category": "%category.fileGroups%"
+      },
+      {
+        "command": "fileGroups.editFileTags",
+        "title": "%command.editFileTags.title%",
+        "icon": "$(tag)",
         "category": "%category.fileGroups%"
       },
       {
@@ -375,6 +430,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "fileGroups.openGettingStarted",
+          "when": "view == fileGroupsView",
+          "group": "navigation@0"
+        },
+        {
           "command": "fileGroups.createGroup",
           "when": "view == fileGroupsView",
           "group": "navigation@1"
@@ -464,6 +524,11 @@
           "group": "inline@4"
         },
         {
+          "command": "fileGroups.editGroupTags",
+          "when": "view == fileGroupsView && viewItem =~ /group/",
+          "group": "2_modify@1"
+        },
+        {
           "command": "fileGroups.openDirect",
           "when": "view == fileGroupsView && viewItem =~ /group/",
           "group": "1_actions@1"
@@ -517,6 +582,11 @@
           "command": "fileGroups.removeFile",
           "when": "view == fileGroupsView && viewItem == file",
           "group": "inline"
+        },
+        {
+          "command": "fileGroups.editFileTags",
+          "when": "view == fileGroupsView && viewItem == file",
+          "group": "1_actions@0"
         },
         {
           "command": "fileGroups.removeFile",
@@ -577,7 +647,8 @@
     "vscode:prepublish": "npm run package",
     "compile": "npm run check-types && npm run lint && node build.js",
     "build": "npm run package",
-    "test": "node --import tsx --test tests/manifest.test.js tests/quickOpen.test.js tests/smartGroups.test.js tests/sharedGroups.test.js tests/i18n.test.js tests/localization.test.js tests/pathUtils.test.js tests/groupFilePaths.test.js tests/multiRoot.test.js tests/accessibility.test.js",
+    "build:web": "node build.js --production --web-only",
+    "test": "node --import tsx --test tests/manifest.test.js tests/quickOpen.test.js tests/smartGroups.test.js tests/sharedGroups.test.js tests/tags.test.js tests/i18n.test.js tests/localization.test.js tests/pathUtils.test.js tests/groupFilePaths.test.js tests/multiRoot.test.js tests/accessibility.test.js",
     "test:extension": "npm run package && vscode-test",
     "verify": "npm run check-types && npm run lint && npm test",
     "watch": "npm-run-all -p watch:*",

@@ -38,7 +38,16 @@ describe('runtime translations', () => {
       'groupActions.copyPaths.description',
       'editor.template.groupLabel',
       'editor.actions.openFileAccessible',
-      'editor.actions.removeFileAccessible'
+      'editor.actions.removeFileAccessible',
+      'tree.action.gettingStarted.label',
+      'tree.action.gettingStarted.description',
+      'tree.action.gettingStarted.detail',
+      'tags.group.prompt',
+      'tags.file.prompt',
+      'tags.placeholder',
+      'tags.updated',
+      'editor.tags.label',
+      'editor.tags.hint'
     ];
 
     for (const language of languages) {

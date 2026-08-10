@@ -2,6 +2,9 @@
   "category.fileGroups": "Groupes de fichiers",
   "view.fileGroups.welcome": "Aucun groupe de fichiers pour l'instant.\n[Créer un groupe](command:fileGroups.createGroup)\n[Créer des groupes intelligents](command:fileGroups.createSmartGroups)\n[Depuis les éditeurs ouverts](command:fileGroups.createGroupFromOpenEditors)\n[Depuis les modifications Git](command:fileGroups.createGroupFromGitChanges)\n[Ouverture rapide des fichiers groupés](command:fileGroups.quickOpen)\n[Importer un groupe partagé](command:fileGroups.importSharedGroup)\n\nCes actions rapides restent disponibles dans l'arborescence même lorsque des groupes existent déjà.",
   "command.changeLanguage.title": "Changer la langue",
+  "command.openGettingStarted.title": "Ouvrir le guide de démarrage",
+  "command.editGroupTags.title": "Modifier les étiquettes du groupe",
+  "command.editFileTags.title": "Modifier les étiquettes du favori",
   "command.createSmartGroups.title": "Créer des groupes intelligents",
   "command.importSharedGroup.title": "Importer un groupe partagé",
   "command.exportGroupShare.title": "Exporter en JSON partageable",
@@ -44,6 +47,9 @@
   "configuration.language.description": "Contrôle la langue d'exécution utilisée par l'interface de CodeGroup.",
   "walkthrough.gettingStarted.title": "Bien démarrer avec CodeGroup",
   "walkthrough.gettingStarted.description": "Utilisez des groupes de favoris pour réunir les fichiers liés sans les déplacer.",
+  "walkthrough.step.language.title": "Choisissez votre langue",
+  "walkthrough.step.language.description": "CodeGroup prend en charge **l’anglais, le français, l’allemand, le hongrois, l’espagnol, l’italien, le portugais brésilien, le japonais et le chinois simplifié**.\n[Choisir la langue de CodeGroup](command:fileGroups.changeLanguage)",
+  "walkthrough.step.language.alt": "Sélecteur de langue CodeGroup en anglais",
   "walkthrough.step.bookmarks.title": "Pensez en groupes de favoris",
   "walkthrough.step.bookmarks.description": "**Les dossiers indiquent où se trouvent les fichiers. CodeGroup indique lesquels vont ensemble.** Ouvrez la vue CodeGroup dans l'Explorateur pour afficher vos collections persistantes.",
   "walkthrough.step.bookmarks.alt": "Actions rapides de CodeGroup dans l'Explorateur VS Code",
@@ -55,5 +61,8 @@
   "walkthrough.step.add.alt": "Groupes et fichiers CodeGroup dans l'Explorateur",
   "walkthrough.step.tools.title": "Travaillez avec vos favoris",
   "walkthrough.step.tools.description": "Utilisez l'ouverture rapide, modifiez les métadonnées, copiez les chemins ou ouvrez uniquement ce groupe ou tous ses sous-groupes.\n[Ouvrir l'éditeur de groupe](command:fileGroups.openGroupEditor) · [Ouverture rapide](command:fileGroups.quickOpen)",
-  "walkthrough.step.tools.alt": "Éditeur visuel de groupe CodeGroup"
+  "walkthrough.step.tools.alt": "Éditeur visuel de groupe CodeGroup",
+  "walkthrough.step.share.title": "Partagez CodeGroup s’il vous plaît",
+  "walkthrough.step.share.description": "Aidez les autres à découvrir les groupes de favoris : [ajoutez une étoile sur GitHub](https://github.com/MiszterSoul/codegroup), [laissez un avis sur Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer) ou partagez un groupe utile avec votre équipe.\n[Exporter un groupe partagé](command:fileGroups.exportSharedGroup)",
+  "walkthrough.step.share.alt": "Actions de partage CodeGroup en anglais"
 }

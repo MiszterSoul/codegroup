@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.4.2] - 2026-08-10
+
+### Added
+
+- **onboarding:** Added permanent Quick Action, view-title, and Command Palette access for reopening the native Getting Started walkthrough.
+- **onboarding:** Expanded Getting Started to six steps with language selection, English screenshots for every step, and an optional sharing prompt.
+- **feat:** Added searchable tags for groups and individual file bookmarks, including Group Editor and shared JSON support.
+- **web:** Added a browser extension entry point for core bookmark workflows in VS Code Web and Codespaces.
+
+### Changed
+
+- **docs:** Shortened the README and moved first-use guidance into the native in-extension walkthrough.
+- **localization:** Added the onboarding, language-selection, sharing, and tag text to all nine supported languages.
+
 ## [1.4.1] - 2026-08-10
 
 ### Added

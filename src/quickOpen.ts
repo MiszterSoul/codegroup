@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { t } from './i18n';
 import { FileGroup } from './models';
+import { formatTags, normalizeTags } from './tags';
 
 export const MAX_RECENT_GROUP_FILES = 20;
 
@@ -116,6 +117,11 @@ export function buildGroupedFileQuickOpenSections(
 
       if (group.shortDescription) {
         detailParts.push(group.shortDescription);
+      }
+
+      const searchableTags = normalizeTags([...(group.tags ?? []), ...(file.tags ?? [])]);
+      if (searchableTags.length > 0) {
+        detailParts.push(formatTags(searchableTags));
       }
 
       if (group.isGlobal) {

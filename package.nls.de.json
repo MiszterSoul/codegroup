@@ -2,6 +2,9 @@
   "category.fileGroups": "Dateigruppen",
   "view.fileGroups.welcome": "Noch keine Dateigruppen vorhanden.\n[Gruppe erstellen](command:fileGroups.createGroup)\n[Smarte Gruppen erstellen](command:fileGroups.createSmartGroups)\n[Aus geöffneten Editoren](command:fileGroups.createGroupFromOpenEditors)\n[Aus Git-Änderungen](command:fileGroups.createGroupFromGitChanges)\n[Gruppierte Dateien schnell öffnen](command:fileGroups.quickOpen)\n[Geteilte Gruppe importieren](command:fileGroups.importSharedGroup)\n\nDiese Schnellaktionen bleiben im Baum sichtbar, auch wenn bereits Gruppen vorhanden sind.",
   "command.changeLanguage.title": "Sprache ändern",
+  "command.openGettingStarted.title": "Erste Schritte öffnen",
+  "command.editGroupTags.title": "Gruppen-Tags bearbeiten",
+  "command.editFileTags.title": "Lesezeichen-Tags bearbeiten",
   "command.createSmartGroups.title": "Smarte Gruppen erstellen",
   "command.importSharedGroup.title": "Geteilte Gruppe importieren",
   "command.exportGroupShare.title": "Als teilbares JSON exportieren",
@@ -44,6 +47,9 @@
   "configuration.language.description": "Steuert die Laufzeitsprache, die von der CodeGroup-Oberfläche verwendet wird.",
   "walkthrough.gettingStarted.title": "Erste Schritte mit CodeGroup",
   "walkthrough.gettingStarted.description": "Halten Sie zusammengehörige Dateien in Lesezeichengruppen zusammen, ohne sie zu verschieben.",
+  "walkthrough.step.language.title": "Sprache auswählen",
+  "walkthrough.step.language.description": "CodeGroup unterstützt **Englisch, Französisch, Deutsch, Ungarisch, Spanisch, Italienisch, brasilianisches Portugiesisch, Japanisch und vereinfachtes Chinesisch**.\n[CodeGroup-Sprache auswählen](command:fileGroups.changeLanguage)",
+  "walkthrough.step.language.alt": "CodeGroup-Sprachauswahl auf Englisch",
   "walkthrough.step.bookmarks.title": "In Lesezeichengruppen denken",
   "walkthrough.step.bookmarks.description": "**Ordner zeigen, wo Dateien liegen. CodeGroup zeigt, welche Dateien zusammengehören.** Öffnen Sie die CodeGroup-Ansicht im Explorer, um dauerhafte Lesezeichensammlungen zu sehen.",
   "walkthrough.step.bookmarks.alt": "CodeGroup-Schnellaktionen im VS Code Explorer",
@@ -55,5 +61,8 @@
   "walkthrough.step.add.alt": "CodeGroup-Gruppen und Dateien im Explorer",
   "walkthrough.step.tools.title": "Mit Lesezeichen arbeiten",
   "walkthrough.step.tools.description": "Nutzen Sie Schnell öffnen, bearbeiten Sie Metadaten, kopieren Sie Pfade oder öffnen Sie nur diese Gruppe beziehungsweise alle Untergruppen.\n[Gruppeneditor öffnen](command:fileGroups.openGroupEditor) · [Schnell öffnen](command:fileGroups.quickOpen)",
-  "walkthrough.step.tools.alt": "Visueller Gruppeneditor von CodeGroup"
+  "walkthrough.step.tools.alt": "Visueller Gruppeneditor von CodeGroup",
+  "walkthrough.step.share.title": "CodeGroup teilen, wenn es gefällt",
+  "walkthrough.step.share.description": "Hilf anderen, Dateilesezeichengruppen zu entdecken: [Stern auf GitHub vergeben](https://github.com/MiszterSoul/codegroup), [im Marketplace bewerten](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer) oder eine nützliche Gruppe mit deinem Team teilen.\n[Freigegebene Gruppe exportieren](command:fileGroups.exportSharedGroup)",
+  "walkthrough.step.share.alt": "CodeGroup-Freigabeaktionen auf Englisch"
 }

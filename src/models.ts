@@ -3,6 +3,7 @@ import * as path from 'path';
 import { countLabel, t } from './i18n';
 import { NORMALIZED_CURRENT_USERNAME, normalizeUsername } from './userInfo';
 import { buildActionAccessibilityLabel, joinAccessibilityLabel } from './accessibility';
+import { formatTags } from './tags';
 
 
 
@@ -31,6 +32,8 @@ export interface GroupFile {
     name: string;
     /** Whether this is a directory */
     isDirectory?: boolean;
+    /** Searchable labels attached to this bookmark */
+    tags?: string[];
 }
 
 /**
@@ -49,6 +52,8 @@ export interface FileGroup {
     shortDescription?: string;
     /** Longer free-form description shown in the tooltip */
     details?: string;
+    /** Searchable labels shared by every bookmark in this group */
+    tags?: string[];
     /** Username of the creator */
     createdBy?: string;
     /** Should the group tree item be collapsed */
@@ -373,7 +378,7 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             // File or folder item
             this.resourceUri = vscode.Uri.file(file.path);
             this.tooltip = file.path;
-            this.description = getParentFoldersSuffix(file.path, 2);
+            this.description = [getParentFoldersSuffix(file.path, 2), formatTags(file.tags)].filter(Boolean).join(' • ');
             this.accessibilityInformation = {
                 label: joinAccessibilityLabel([
                     file.name,
@@ -442,6 +447,9 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             if (group.shortDescription) {
                 descriptionParts.push(group.shortDescription);
             }
+            if (group.tags?.length) {
+                descriptionParts.push(formatTags(group.tags));
+            }
             if (statsDescription) {
                 descriptionParts.push(statsDescription);
             }
@@ -473,6 +481,10 @@ export class FileGroupTreeItem extends vscode.TreeItem {
 
             if (group.shortDescription) {
                 tooltipLines.push('', `_${group.shortDescription}_`);
+            }
+
+            if (group.tags?.length) {
+                tooltipLines.push('', formatTags(group.tags));
             }
 
             // Statistics section

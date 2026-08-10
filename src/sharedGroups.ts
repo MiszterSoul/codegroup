@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { FileGroup, GroupFile } from './models';
 import { resolveWorkspacePath, toWorkspaceRelativePath } from './pathUtils';
+import { normalizeTags } from './tags';
 
 export type SharedFileGroup = {
   id: string;
@@ -12,6 +13,7 @@ export type SharedFileGroup = {
   badgeText?: string;
   sortOrder?: string;
   pinned?: boolean;
+  tags?: string[];
   parentId?: string;
   files: GroupFile[];
 };
@@ -108,7 +110,8 @@ export function isSharedGroupPayload(value: unknown): value is SharedGroupPayloa
 
     const optionalStrings = [group.shortDescription, group.details, group.badgeText, group.sortOrder, group.parentId];
     if (optionalStrings.some(optionalValue => optionalValue !== undefined && typeof optionalValue !== 'string')
-      || (group.pinned !== undefined && typeof group.pinned !== 'boolean')) {
+      || (group.pinned !== undefined && typeof group.pinned !== 'boolean')
+      || (group.tags !== undefined && (!Array.isArray(group.tags) || group.tags.some(tag => typeof tag !== 'string')))) {
       return false;
     }
 
@@ -121,7 +124,8 @@ export function isSharedGroupPayload(value: unknown): value is SharedGroupPayloa
       if (typeof file.path !== 'string'
         || file.path.length === 0
         || typeof file.name !== 'string'
-        || (file.isDirectory !== undefined && typeof file.isDirectory !== 'boolean')) {
+        || (file.isDirectory !== undefined && typeof file.isDirectory !== 'boolean')
+        || (file.tags !== undefined && (!Array.isArray(file.tags) || file.tags.some(tag => typeof tag !== 'string')))) {
         return false;
       }
     }
@@ -180,6 +184,7 @@ export function buildSharedGroupPayload(
       badgeText: group.badgeText,
       sortOrder: group.sortOrder,
       pinned: group.pinned,
+      tags: normalizeTags(group.tags),
       parentId: group.parentId && descendantIds.has(group.parentId) ? group.parentId : undefined,
       files: group.files.map((file) => ({
         ...file,
@@ -220,8 +225,10 @@ export function importSharedGroupPayload(
     badgeText: sharedGroup.badgeText,
     sortOrder: sharedGroup.sortOrder,
     pinned: sharedGroup.pinned ?? false,
+    tags: normalizeTags(sharedGroup.tags),
     files: sharedGroup.files.map((file) => ({
       ...file,
+      tags: normalizeTags(file.tags),
       path: fromPortablePath(file.path, workspaceRoot)
     })),
     order: startingOrder + index,

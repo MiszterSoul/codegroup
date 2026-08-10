@@ -8,6 +8,7 @@ import { FileGroupDecorationProvider } from './fileDecorationProvider';
 import { FileGroupsProvider } from './fileGroupsProvider';
 import { GROUP_EDITOR_TEMPLATES } from './smartGroups';
 import { StorageService } from './storageService';
+import { formatTags, parseTags } from './tags';
 
 type StatusLevel = 'info' | 'warning' | 'error';
 
@@ -19,6 +20,7 @@ type GroupEditorStatus = {
 type SavePayload = {
   name: string;
   shortDescription: string;
+  tags: string;
   details: string;
   icon: string;
   colorId: string;
@@ -93,7 +95,7 @@ function parseMessage(value: unknown): GroupEditorMessage | undefined {
     }
 
     const payload = message.payload as Record<string, unknown>;
-    const stringFields = ['name', 'shortDescription', 'details', 'icon', 'colorId', 'customColor', 'badgeText', 'sortOrder'] as const;
+    const stringFields = ['name', 'shortDescription', 'tags', 'details', 'icon', 'colorId', 'customColor', 'badgeText', 'sortOrder'] as const;
     if (stringFields.some(field => typeof payload[field] !== 'string')
       || typeof payload.pinned !== 'boolean'
       || (payload.scope !== 'local' && payload.scope !== 'global')) {
@@ -344,6 +346,7 @@ export class GroupEditorPanel {
     await this.storageService.updateGroup(group.id, {
       name,
       shortDescription: normalizeText(payload.shortDescription),
+      tags: parseTags(payload.tags),
       details: normalizeText(payload.details),
       icon: GROUP_ICONS.some(icon => icon.id === payload.icon) ? payload.icon : 'folder',
       color: resolvedColor,
@@ -1020,6 +1023,12 @@ export class GroupEditorPanel {
                         <input id="shortDescription" name="shortDescription" type="text" value="${escapeHtml(group.shortDescription)}" maxlength="160" placeholder="${escapeHtml(t('editor.summary.placeholder'))}">
                         </div>
 
+                        <div class="field full">
+                        <label for="tags">${escapeHtml(t('editor.tags.label'))}</label>
+                        <input id="tags" name="tags" type="text" value="${escapeHtml(group.tags?.join(', '))}" placeholder="frontend, urgent, review" aria-describedby="tags-hint">
+                        <div id="tags-hint" class="hint">${escapeHtml(t('editor.tags.hint'))}</div>
+                        </div>
+
                         <div class="field">
                         <label for="icon">${escapeHtml(t('editor.icon.label'))}</label>
                             <select id="icon" name="icon">
@@ -1126,6 +1135,10 @@ export class GroupEditorPanel {
         badges.push(`<span class="badge">${escapeHtml(t('editor.badge.missing'))}</span>`);
       }
 
+      if (file.tags?.length) {
+        badges.push(`<span class="badge">${escapeHtml(formatTags(file.tags))}</span>`);
+      }
+
       return `<div class="file-row" role="listitem">
                             <div class="file-main">
                                 <div class="file-name">${escapeHtml(file.name)}</div>
@@ -1211,6 +1224,7 @@ export class GroupEditorPanel {
                 payload: {
                     name: String(formData.get('name') || ''),
                     shortDescription: String(formData.get('shortDescription') || ''),
+                    tags: String(formData.get('tags') || ''),
                     details: String(formData.get('details') || ''),
                     icon: String(formData.get('icon') || 'folder'),
                     colorId: String(formData.get('colorId') || ''),

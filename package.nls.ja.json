@@ -2,6 +2,9 @@
   "category.fileGroups": "ファイルグループ",
   "view.fileGroups.welcome": "まだファイルグループはありません。\n[グループを作成](command:fileGroups.createGroup)\n[スマートグループを作成](command:fileGroups.createSmartGroups)\n[開いているエディターから](command:fileGroups.createGroupFromOpenEditors)\n[Git 変更から](command:fileGroups.createGroupFromGitChanges)\n[グループ化されたファイルをクイックオープン](command:fileGroups.quickOpen)\n[共有グループをインポート](command:fileGroups.importSharedGroup)\n\nこれらのクイックアクションは、すでにグループがある場合でもツリー内に表示されたままです。",
   "command.changeLanguage.title": "言語を変更",
+  "command.openGettingStarted.title": "入門ガイドを開く",
+  "command.editGroupTags.title": "グループタグを編集",
+  "command.editFileTags.title": "ブックマークタグを編集",
   "command.createSmartGroups.title": "スマートグループを作成",
   "command.importSharedGroup.title": "共有グループをインポート",
   "command.exportGroupShare.title": "共有可能な JSON としてエクスポート",
@@ -44,6 +47,9 @@
   "configuration.language.description": "CodeGroup UI で使用する実行時言語を制御します。",
   "walkthrough.gettingStarted.title": "CodeGroup 入門",
   "walkthrough.gettingStarted.description": "関連ファイルを移動せず、ブックマーク形式のグループにまとめます。",
+  "walkthrough.step.language.title": "言語を選択",
+  "walkthrough.step.language.description": "CodeGroup は **英語、フランス語、ドイツ語、ハンガリー語、スペイン語、イタリア語、ブラジルポルトガル語、日本語、簡体字中国語** に対応しています。\n[CodeGroup の言語を選択](command:fileGroups.changeLanguage)",
+  "walkthrough.step.language.alt": "英語表示の CodeGroup 言語選択",
   "walkthrough.step.bookmarks.title": "ブックマークグループで整理する",
   "walkthrough.step.bookmarks.description": "**フォルダーはファイルの場所を示し、CodeGroup は関連するファイルを示します。** エクスプローラーで CodeGroup ビューを開き、永続的なブックマークコレクションを確認します。",
   "walkthrough.step.bookmarks.alt": "VS Code エクスプローラーの CodeGroup クイックアクション",
@@ -55,5 +61,8 @@
   "walkthrough.step.add.alt": "エクスプローラー内の CodeGroup のグループとファイル",
   "walkthrough.step.tools.title": "ブックマークを活用する",
   "walkthrough.step.tools.description": "クイックオープン、メタデータ編集、パスのコピーを使い、このグループだけ、または全サブグループを開きます。\n[グループエディターを開く](command:fileGroups.openGroupEditor) · [クイックオープン](command:fileGroups.quickOpen)",
-  "walkthrough.step.tools.alt": "CodeGroup のビジュアルグループエディター"
+  "walkthrough.step.tools.alt": "CodeGroup のビジュアルグループエディター",
+  "walkthrough.step.share.title": "気に入ったら CodeGroup を共有",
+  "walkthrough.step.share.description": "ファイルブックマークグループを広めましょう。[GitHub でスター](https://github.com/MiszterSoul/codegroup)、[Marketplace でレビュー](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)、または便利なグループをチームと共有できます。\n[共有グループをエクスポート](command:fileGroups.exportSharedGroup)",
+  "walkthrough.step.share.alt": "英語表示の CodeGroup 共有アクション"
 }

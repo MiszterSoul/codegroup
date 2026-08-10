@@ -15,6 +15,7 @@ import { SmartGroupSuggestion, suggestSmartGroups } from './smartGroups';
 import { isPathInsideWorkspace } from './pathUtils';
 import { buildGroupFilePathsText, collectGroupFilePaths } from './groupFilePaths';
 import { removeGroupedFilePath, renameGroupedFilePath } from './groupFileMaintenance';
+import { formatTags, parseTags } from './tags';
 
 let storageService: StorageService;
 let fileGroupsProvider: FileGroupsProvider;
@@ -536,6 +537,16 @@ async function pickGroupForCommand(placeHolder: string, initialItem?: FileGroupT
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.openGettingStarted', async () => {
+            await vscode.commands.executeCommand(
+                'workbench.action.openWalkthrough',
+                `${context.extension.id}#codegroup.gettingStarted`,
+                false
+            );
+        })
+    );
+
     type GroupedFileQuickPickItem = vscode.QuickPickItem & {
         groupId?: string;
         filePath?: string;
@@ -1048,6 +1059,67 @@ function registerCommands(context: vscode.ExtensionContext) {
             }
 
             GroupEditorPanel.show(context, storageService, fileGroupsProvider, fileDecorationProvider, targetGroup.id);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.editGroupTags', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand(t('tags.group.prompt', { name: '' }), item);
+            if (!targetGroup) {
+                return;
+            }
+
+            const value = await vscode.window.showInputBox({
+                prompt: t('tags.group.prompt', { name: targetGroup.name }),
+                placeHolder: t('tags.placeholder'),
+                value: targetGroup.tags?.join(', ') ?? ''
+            });
+            if (value === undefined) {
+                return;
+            }
+
+            await storageService.updateGroup(targetGroup.id, { tags: parseTags(value) });
+            fileGroupsProvider.refresh();
+            void vscode.window.showInformationMessage(t('tags.updated'));
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.editFileTags', async (item?: FileGroupTreeItem) => {
+            let targetGroup = item?.group ?? undefined;
+            let targetFile = item?.file;
+
+            if (!targetGroup || !targetFile) {
+                const candidates = storageService.getGroups().flatMap(group => group.files.map(file => ({
+                    label: file.name,
+                    description: `${group.name}${formatTags(file.tags) ? ` • ${formatTags(file.tags)}` : ''}`,
+                    group,
+                    file
+                })));
+                const selected = await vscode.window.showQuickPick(candidates, {
+                    placeHolder: t('tags.file.prompt', { name: '' }),
+                    matchOnDescription: true
+                });
+                targetGroup = selected?.group;
+                targetFile = selected?.file;
+            }
+
+            if (!targetGroup || !targetFile) {
+                return;
+            }
+
+            const value = await vscode.window.showInputBox({
+                prompt: t('tags.file.prompt', { name: targetFile.name }),
+                placeHolder: t('tags.placeholder'),
+                value: targetFile.tags?.join(', ') ?? ''
+            });
+            if (value === undefined) {
+                return;
+            }
+
+            await storageService.updateFileInGroup(targetGroup.id, targetFile.path, { tags: parseTags(value) });
+            fileGroupsProvider.refresh();
+            void vscode.window.showInformationMessage(t('tags.updated'));
         })
     );
 

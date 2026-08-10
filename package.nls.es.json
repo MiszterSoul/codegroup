@@ -2,6 +2,9 @@
   "category.fileGroups": "Grupos de archivos",
   "view.fileGroups.welcome": "Todavía no hay grupos de archivos.\n[Crear un grupo](command:fileGroups.createGroup)\n[Crear grupos inteligentes](command:fileGroups.createSmartGroups)\n[Desde editores abiertos](command:fileGroups.createGroupFromOpenEditors)\n[Desde cambios de Git](command:fileGroups.createGroupFromGitChanges)\n[Abrir rápido archivos agrupados](command:fileGroups.quickOpen)\n[Importar grupo compartido](command:fileGroups.importSharedGroup)\n\nEstas acciones rápidas siguen disponibles en el árbol incluso cuando ya existen grupos.",
   "command.changeLanguage.title": "Cambiar idioma",
+  "command.openGettingStarted.title": "Abrir Primeros pasos",
+  "command.editGroupTags.title": "Editar etiquetas del grupo",
+  "command.editFileTags.title": "Editar etiquetas del marcador",
   "command.createSmartGroups.title": "Crear grupos inteligentes",
   "command.importSharedGroup.title": "Importar grupo compartido",
   "command.exportGroupShare.title": "Exportar como JSON compartible",
@@ -44,6 +47,9 @@
   "configuration.language.description": "Controla el idioma en tiempo de ejecución usado por la interfaz de CodeGroup.",
   "walkthrough.gettingStarted.title": "Primeros pasos con CodeGroup",
   "walkthrough.gettingStarted.description": "Mantén juntos los archivos relacionados en grupos de marcadores sin moverlos.",
+  "walkthrough.step.language.title": "Elige tu idioma",
+  "walkthrough.step.language.description": "CodeGroup admite **inglés, francés, alemán, húngaro, español, italiano, portugués de Brasil, japonés y chino simplificado**.\n[Elegir idioma de CodeGroup](command:fileGroups.changeLanguage)",
+  "walkthrough.step.language.alt": "Selector de idioma de CodeGroup en inglés",
   "walkthrough.step.bookmarks.title": "Piensa en grupos de marcadores",
   "walkthrough.step.bookmarks.description": "**Las carpetas muestran dónde están los archivos. CodeGroup muestra cuáles están relacionados.** Abre la vista CodeGroup en el Explorador para ver colecciones persistentes de marcadores.",
   "walkthrough.step.bookmarks.alt": "Acciones rápidas de CodeGroup en el Explorador de VS Code",
@@ -55,5 +61,8 @@
   "walkthrough.step.add.alt": "Grupos y archivos de CodeGroup en el Explorador",
   "walkthrough.step.tools.title": "Trabaja con tus marcadores",
   "walkthrough.step.tools.description": "Usa Apertura rápida, edita metadatos, copia rutas o elige abrir solo este grupo o todos sus subgrupos.\n[Abrir el editor de grupos](command:fileGroups.openGroupEditor) · [Apertura rápida](command:fileGroups.quickOpen)",
-  "walkthrough.step.tools.alt": "Editor visual de grupos de CodeGroup"
+  "walkthrough.step.tools.alt": "Editor visual de grupos de CodeGroup",
+  "walkthrough.step.share.title": "Comparte CodeGroup si te gusta",
+  "walkthrough.step.share.description": "Ayuda a otros a descubrir los grupos de marcadores: [dale una estrella en GitHub](https://github.com/MiszterSoul/codegroup), [escribe una reseña en Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer) o comparte un grupo útil con tu equipo.\n[Exportar un grupo compartido](command:fileGroups.exportSharedGroup)",
+  "walkthrough.step.share.alt": "Acciones para compartir CodeGroup en inglés"
 }

@@ -2,6 +2,9 @@
   "category.fileGroups": "File Groups",
   "view.fileGroups.welcome": "No file groups yet.\n[Create a Group](command:fileGroups.createGroup)\n[Create Smart Groups](command:fileGroups.createSmartGroups)\n[From Open Editors](command:fileGroups.createGroupFromOpenEditors)\n[From Git Changes](command:fileGroups.createGroupFromGitChanges)\n[Quick Open Grouped Files](command:fileGroups.quickOpen)\n[Import Shared Group](command:fileGroups.importSharedGroup)\n\nThese quick actions stay available in the tree even after you already have groups.",
   "command.changeLanguage.title": "Change Language",
+  "command.openGettingStarted.title": "Open Getting Started",
+  "command.editGroupTags.title": "Edit Group Tags",
+  "command.editFileTags.title": "Edit Bookmark Tags",
   "command.createSmartGroups.title": "Create Smart Groups",
   "command.importSharedGroup.title": "Import Shared Group",
   "command.exportGroupShare.title": "Export Group as Shareable JSON",
@@ -44,6 +47,9 @@
   "configuration.language.description": "Controls the runtime language used by CodeGroup UI text.",
   "walkthrough.gettingStarted.title": "Getting Started with CodeGroup",
   "walkthrough.gettingStarted.description": "Use bookmark-style groups to keep related files together without moving them.",
+  "walkthrough.step.language.title": "Choose your language",
+  "walkthrough.step.language.description": "CodeGroup supports **English, French, German, Hungarian, Spanish, Italian, Brazilian Portuguese, Japanese, and Simplified Chinese**.\n[Choose CodeGroup Language](command:fileGroups.changeLanguage)",
+  "walkthrough.step.language.alt": "CodeGroup language picker in English",
   "walkthrough.step.bookmarks.title": "Think in bookmark groups",
   "walkthrough.step.bookmarks.description": "**Folders show where files live. CodeGroup shows which files belong together.** Open the CodeGroup view in Explorer to see persistent bookmark collections.",
   "walkthrough.step.bookmarks.alt": "CodeGroup Quick Actions in the VS Code Explorer",
@@ -55,5 +61,8 @@
   "walkthrough.step.add.alt": "CodeGroup groups and files in the Explorer",
   "walkthrough.step.tools.title": "Work with your bookmarks",
   "walkthrough.step.tools.description": "Use Quick Open, edit metadata, copy paths, or choose whether to open only this group or every nested subgroup.\n[Open the Group Editor](command:fileGroups.openGroupEditor) · [Quick Open](command:fileGroups.quickOpen)",
-  "walkthrough.step.tools.alt": "CodeGroup visual Group Editor"
+  "walkthrough.step.tools.alt": "CodeGroup visual Group Editor",
+  "walkthrough.step.share.title": "Share CodeGroup if you like it",
+  "walkthrough.step.share.description": "Help others discover file bookmark groups: [star CodeGroup on GitHub](https://github.com/MiszterSoul/codegroup), [review it on the Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer), or share a useful group with your team.\n[Export a Shared Group](command:fileGroups.exportSharedGroup)",
+  "walkthrough.step.share.alt": "CodeGroup sharing actions in English"
 }

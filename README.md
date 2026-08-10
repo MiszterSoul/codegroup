@@ -32,21 +32,6 @@ Normal folders describe where files live. CodeGroup adds bookmark folders that d
 - **Share team-specific file collections** through Git-friendly JSON.
 - **Keep reusable global groups** available across projects.
 
-## Bookmarks, groups, and folders
-
-CodeGroup uses familiar folder ideas without changing the folders on disk:
-
-| CodeGroup concept | Bookmark-style meaning |
-|---|---|
-| File in a group | A bookmark pointing to the original file |
-| Group | A named bookmark collection for a feature, task, or topic |
-| Subgroup | A bookmark folder nested inside another collection |
-| Local group | A bookmark collection stored with the current workspace |
-| Global group | A bookmark collection available across every project |
-| Smart Group | A generated starter collection based on project area or language |
-
-The same file can appear in multiple groups because CodeGroup stores references, not copies. Renaming or moving a tracked file updates its bookmark, and deleting a file can be cleaned from the affected groups. Your Explorer folder structure remains unchanged.
-
 ## Core features
 
 | Feature | What it gives you |
@@ -56,15 +41,17 @@ The same file can appear in multiple groups because CodeGroup stores references,
 | Smart Groups | Auto-build groups by project area or language family |
 | Working Sets | Create groups from open editors or Git changes |
 | Quick Open | Search grouped files, group names, notes, and paths |
+| Searchable tags | Label groups and individual file bookmarks, then find them through Quick Open |
 | Global Groups | Reuse important groups across different workspaces |
 | Group customization | 120+ icons, colors, badges, descriptions, presets |
 | Shareable JSON | Export/import complete group trees |
 | Git-friendly storage | Store workspace groups in `.vscode/file-groups.json` |
 | Smart file tracking | Follow renames and clean up deleted files |
+| Web support | Use core bookmark workflows in vscode.dev, github.dev, and Codespaces |
 
 ## Quick start
 
-After a fresh install, VS Code automatically opens the **Getting Started with CodeGroup** walkthrough. It explains the bookmark model and guides you through creating a group, adding files, and reopening a working set. You can revisit it later from **Help → Get Started**.
+VS Code opens the native **Getting Started with CodeGroup** walkthrough after installation. Reopen it anytime from the CodeGroup **Quick Actions** list or run **File Groups: Open Getting Started** from the Command Palette.
 
 1. Install **CodeGroup** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer).
 2. Open the **CodeGroup** view inside Explorer.
@@ -72,85 +59,21 @@ After a fresh install, VS Code automatically opens the **Getting Started with Co
 4. Drag files from Explorer or open tabs into the bookmark group.
 5. Click a file to open it, or use **Open All** for the full working set.
 
-That is enough to start. Everything else is optional.
+CodeGroup stores references, not copies: the same file can appear in several groups while the Explorer folder structure stays unchanged.
 
 ## Visual group editor
 
-Open any group in the visual editor to manage its name, notes, icon, color, badge, order, storage scope, presets, and file membership in one place.
+Open any group in the visual editor to manage its name, tags, notes, icon, color, badge, order, storage scope, presets, and file membership.
 
 ![CodeGroup visual editor for VS Code file bookmarks and bookmark folders](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-group-editor.png)
 
-## Smart Groups
+## Useful workflows
 
-CodeGroup can generate useful groups automatically instead of making you organize everything manually.
-
-### Project-area grouping
-
-Create groups such as:
-
-- Frontend
-- Backend
-- Tests
-- Scripts
-- Documentation
-- Source core
-
-### Language-family grouping
-
-Generate groups for TypeScript, JavaScript, styles, documentation, configuration, media, and more.
-
-Generated groups remain normal editable CodeGroup groups, so you can rename, recolor, reorder, nest, or extend them afterward.
-
-## Working Sets
-
-Turn temporary development context into a reusable group in one action.
-
-### From open editors
-
-Capture your currently open tabs into a group.
-
-Useful for:
-
-- feature work
-- debugging sessions
-- refactors
-- research
-
-### From Git changes
-
-Create a group from uncommitted files in the current workspace.
-
-Useful for:
-
-- PR review
-- bugfix context
-- release preparation
-- keeping a change set visible while working
-
-## Drag & drop
-
-CodeGroup supports drag & drop across the workflow:
-
-- Explorer files → groups
-- open tabs → groups
-- groups → groups to create subgroups
-- subgroups → root
-- files → reorder inside groups
-- groups → editor to open all files
-- groups → Copilot Chat to attach multiple files at once
-
-## Global Groups
-
-Create groups that are available across projects instead of being tied to a single workspace.
-
-Typical uses:
-
-- frequently used scripts
-- shared documentation
-- utility files
-- reference projects
-
-Global groups can be hidden per workspace and can be moved back to local workspace storage when needed.
+- Generate editable Smart Groups by project area or language.
+- Capture open editors or Git changes as reusable working sets.
+- Drag Explorer files, tabs, groups, and subgroups into place.
+- Add comma-separated tags to groups or individual bookmarks and search `#tag` in Quick Open.
+- Keep local groups with a workspace or reuse global groups across desktop projects.
 
 ## Sharing and storage
 
@@ -166,35 +89,9 @@ You can also export an individual group tree as shareable JSON and import it els
 
 See the copy-paste [shared-group JSON recipes](docs/shared-group-recipes.md) for frontend/backend, bugfix, PR review, and documentation workflows.
 
-Workspace storage example:
+## VS Code Web and Codespaces
 
-```json
-{
-  "version": 2,
-  "groups": [
-    {
-      "id": "abc123",
-      "name": "Authentication",
-      "icon": "key",
-      "color": "#3498DB",
-      "shortDescription": "Login endpoints",
-      "files": [
-        { "path": "src/auth/login.ts", "name": "login.ts" }
-      ]
-    }
-  ]
-}
-```
-
-## Screenshots
-
-### Main view
-
-![CodeGroup Quick Actions and file bookmark workflow](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-quick-actions.png)
-
-### Context menu
-
-![CodeGroup context menu](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-context-menu.png)
+Core groups, file bookmarks, tags, Quick Open, and the Getting Started guide work in `vscode.dev`, `github.dev`, and browser-based Codespaces. Git-backed working sets and global desktop storage remain available when CodeGroup runs in a desktop or Codespaces workspace extension host.
 
 ## Commands
 
@@ -203,7 +100,10 @@ Workspace storage example:
 
 | Command | Description |
 |---|---|
+| `File Groups: Open Getting Started` | Reopen the native in-extension guide |
 | `File Groups: Quick Open from Groups` | Search grouped files, with recent files first |
+| `File Groups: Edit Group Tags` | Add searchable labels to a group |
+| `File Groups: Edit Bookmark Tags` | Add searchable labels to one bookmarked file |
 | `File Groups: Create Smart Groups` | Auto-build groups by project area or language family |
 | `File Groups: Import Shared Group` | Import shareable CodeGroup JSON |
 | `File Groups: Export Group as Shareable JSON` | Export a reusable group tree |
@@ -235,16 +135,6 @@ Workspace storage example:
 
 ## Development
 
-CodeGroup is written in TypeScript.
-
-### Requirements
-
-- Node.js 22+
-- npm
-- VS Code 1.74+
-
-### Setup
-
 ```bash
 git clone https://github.com/MiszterSoul/codegroup.git
 cd codegroup
@@ -261,6 +151,7 @@ npm run verify
 | `npm run verify` | Run type checks, lint, and unit tests |
 | `npm run test:extension` | Test inside an isolated VS Code host |
 | `npm run build` | Create the production bundle |
+| `npm run build:web` | Create the browser extension bundle |
 | `npm run package:list` | Inspect packaged extension files |
 | `npm run package:vsix` | Build a local `.vsix` package |
 

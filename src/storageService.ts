@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { FileGroup, GroupFile, FileGroupsConfig } from './models';
 import { resolveWorkspacePath, toWorkspaceRelativePath } from './pathUtils';
+import { normalizeTags } from './tags';
 
 const STORAGE_KEY = 'fileGroups';
 const CONFIG_FILE_NAME = '.vscode/file-groups.json';
@@ -28,6 +29,8 @@ export class StorageService {
             parentId: g.parentId ?? undefined,
             shortDescription: g.shortDescription ?? undefined,
             details: g.details ?? undefined,
+            tags: normalizeTags(g.tags ?? []),
+            files: g.files.map(file => ({ ...file, tags: normalizeTags(file.tags ?? []) })),
             createdBy: g.createdBy ?? undefined,
             collapsed: g.collapsed ?? false,
             pinned: g.pinned ?? false,
@@ -216,6 +219,8 @@ export class StorageService {
             parentId: g.parentId ?? undefined,
             shortDescription: g.shortDescription ?? undefined,
             details: g.details ?? undefined,
+            tags: normalizeTags(g.tags ?? []),
+            files: g.files.map(file => ({ ...file, tags: normalizeTags(file.tags ?? []) })),
             createdBy: g.createdBy ?? undefined,
             collapsed: g.collapsed ?? false,
             pinned: g.pinned ?? false,
@@ -267,6 +272,8 @@ export class StorageService {
                         group.files = updatedFiles;
                         group.shortDescription = group.shortDescription ?? undefined;
                         group.details = group.details ?? undefined;
+                        group.tags = normalizeTags(group.tags ?? []);
+                        group.files = group.files.map(file => ({ ...file, tags: normalizeTags(file.tags ?? []) }));
                         group.createdBy = group.createdBy ?? undefined;
                         group.collapsed = group.collapsed ?? false;
                         group.pinned = group.pinned ?? false;
@@ -312,6 +319,8 @@ export class StorageService {
                 for (const group of config.groups) {
                     group.shortDescription = group.shortDescription ?? undefined;
                     group.details = group.details ?? undefined;
+                    group.tags = normalizeTags(group.tags ?? []);
+                    group.files = group.files.map(file => ({ ...file, tags: normalizeTags(file.tags ?? []) }));
                     group.createdBy = group.createdBy ?? undefined;
                     group.collapsed = group.collapsed ?? false;
                     group.pinned = group.pinned ?? false;
@@ -568,6 +577,21 @@ export class StorageService {
             group.files = group.files.filter(f => f.path !== filePath);
             await this.saveGroups(groups);
         }
+    }
+
+    /**
+     * Update metadata for one bookmarked file inside a group.
+     */
+    async updateFileInGroup(groupId: string, filePath: string, updates: Partial<GroupFile>): Promise<void> {
+        const groups = this.getAllGroups();
+        const group = groups.find(g => g.id === groupId);
+        const file = group?.files.find(item => item.path === filePath);
+        if (!file) {
+            return;
+        }
+
+        Object.assign(file, updates);
+        await this.saveGroups(groups);
     }
 
     /**

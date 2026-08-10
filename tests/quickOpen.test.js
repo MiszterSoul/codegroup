@@ -58,8 +58,9 @@ describe('quick open helpers', () => {
         icon: 'server',
         color: '',
         shortDescription: 'Service endpoints',
+        tags: ['backend'],
         files: [
-          { path: 'c:/repo/src/api.ts', name: 'api.ts' },
+          { path: 'c:/repo/src/api.ts', name: 'api.ts', tags: ['urgent'] },
           { path: 'c:/repo/src/feature', name: 'feature', isDirectory: true }
         ],
         order: 0,
@@ -87,5 +88,6 @@ describe('quick open helpers', () => {
     assert.deepEqual(otherItems.map(item => item.fileName), ['api.ts']);
     assert.match(otherItems[0]?.detail ?? '', /src[\\/]api\.ts/);
     assert.match(otherItems[0]?.detail ?? '', /Service endpoints/);
+    assert.match(otherItems[0]?.detail ?? '', /#backend #urgent/);
   });
 });
