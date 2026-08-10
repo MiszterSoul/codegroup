@@ -3,9 +3,9 @@
 
 # CodeGroup
 
-### Organize your VS Code files into groups — without moving them.
+### File bookmarks and bookmark folders for VS Code — without moving files.
 
-Create persistent file groups, nested subgroups, smart working sets, global groups, and shareable collections directly inside the VS Code Explorer.
+CodeGroup is a VS Code file-bookmark organizer. Collect related files from any folder into persistent bookmark-style groups, nested bookmark folders, smart working sets, and shareable collections directly inside the Explorer.
 
 [![VS Code Marketplace](https://vsmarketplacebadges.dev/version/PeterDev.codegroup-file-organizer.svg)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
 [![Installs](https://vsmarketplacebadges.dev/installs/PeterDev.codegroup-file-organizer.svg)](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer)
@@ -17,14 +17,14 @@ Create persistent file groups, nested subgroups, smart working sets, global grou
 </div>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-quick-actions.png" alt="CodeGroup Quick Actions in the VS Code Explorer">
+  <img src="https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-quick-actions.png" alt="CodeGroup VS Code file bookmarks and Quick Actions in the Explorer">
 </p>
 
-## Why CodeGroup?
+## File bookmarks for VS Code
 
 Large projects rarely fit neatly into folders. A single feature can span routes, components, tests, services, configs, and database files.
 
-CodeGroup lets you collect those related files into reusable groups without changing your project structure.
+Normal folders describe where files live. CodeGroup adds bookmark folders that describe which files belong together while you work—without changing your project structure.
 
 - **Keep feature files together** even when they live in different directories.
 - **Build working sets instantly** from open editors or current Git changes.
@@ -36,7 +36,7 @@ CodeGroup lets you collect those related files into reusable groups without chan
 
 | Feature | What it gives you |
 |---|---|
-| File groups & subgroups | Organize related files into nested collections |
+| File bookmarks & bookmark folders | Organize related files into groups and nested subgroups |
 | Drag & drop | Move files, folders, tabs, groups, and subgroups naturally |
 | Smart Groups | Auto-build groups by project area or language family |
 | Working Sets | Create groups from open editors or Git changes |
@@ -51,8 +51,8 @@ CodeGroup lets you collect those related files into reusable groups without chan
 
 1. Install **CodeGroup** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PeterDev.codegroup-file-organizer).
 2. Open the **CodeGroup** view inside Explorer.
-3. Click **+** to create a group.
-4. Drag files from Explorer or open tabs into it.
+3. Click **+** to create a group—your first bookmark folder.
+4. Drag files from Explorer or open tabs into the bookmark group.
 5. Click a file to open it, or use **Open All** for the full working set.
 
 That is enough to start. Everything else is optional.
@@ -61,7 +61,7 @@ That is enough to start. Everything else is optional.
 
 Open any group in the visual editor to manage its name, notes, icon, color, badge, order, storage scope, presets, and file membership in one place.
 
-![CodeGroup visual group editor](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-group-editor.png)
+![CodeGroup visual editor for VS Code file bookmarks and bookmark folders](https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-group-editor.png)
 
 ## Smart Groups
 

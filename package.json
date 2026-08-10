@@ -1,7 +1,7 @@
 {
   "name": "codegroup-file-organizer",
-  "displayName": "CodeGroup - File Organizer",
-  "description": "Organize related files into custom groups in VS Code. Drag & drop files, create subgroups, smart groups and working sets — like bookmarks for your codebase.",
+  "displayName": "CodeGroup - File Bookmarks & Organizer",
+  "description": "Bookmark and organize related files into custom groups in VS Code. Create bookmark folders, smart groups, and working sets without moving files.",
   "version": "1.4.0",
   "publisher": "PeterDev",
   "license": "MIT",
@@ -37,7 +37,14 @@
     "developer productivity",
     "vscode sidebar",
     "explorer",
-    "project files"
+    "project files",
+    "file bookmarks",
+    "folder bookmarks",
+    "bookmark folders",
+    "vscode bookmarks",
+    "code bookmarks",
+    "project bookmarks",
+    "sidebar bookmarks"
   ],
   "galleryBanner": {
     "color": "#5C6BC0",
