@@ -1,4 +1,5 @@
 import { execFile } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { FileGroup, FileGroupTreeItem, GroupFile, GROUP_ICONS, GROUP_COLORS, generateId, isHexColor } from './models';
@@ -12,6 +13,8 @@ import { buildGroupedFileQuickOpenSections, makeRecentGroupFileKey, normalizeRec
 import { buildSharedGroupPayload, importSharedGroupPayload, isSharedGroupPayload } from './sharedGroups';
 import { SmartGroupSuggestion, suggestSmartGroups } from './smartGroups';
 import { isPathInsideWorkspace } from './pathUtils';
+import { buildGroupFilePathsText } from './groupFilePaths';
+import { removeGroupedFilePath, renameGroupedFilePath } from './groupFileMaintenance';
 
 let storageService: StorageService;
 let fileGroupsProvider: FileGroupsProvider;
@@ -451,15 +454,7 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
     fileWatcher.onDidDelete(async (uri) => {
         const deletedPath = uri.fsPath;
         const groups = storageService.getAllGroups();
-        let changed = false;
-
-        for (const group of groups) {
-            const originalLength = group.files.length;
-            group.files = group.files.filter(f => f.path !== deletedPath);
-            if (group.files.length !== originalLength) {
-                changed = true;
-            }
-        }
+        const changed = removeGroupedFilePath(groups, deletedPath) > 0;
 
         if (changed) {
             await storageService.saveGroups(groups);
@@ -478,19 +473,7 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
             for (const { oldUri, newUri } of event.files) {
                 const oldPath = oldUri.fsPath;
                 const newPath = newUri.fsPath;
-                const newName = newPath.split(/[/\\]/).pop() || 'unknown';
-
-                for (const group of groups) {
-                    const fileIndex = group.files.findIndex(f => f.path === oldPath);
-                    if (fileIndex !== -1) {
-                        // Update the file path and name
-                        group.files[fileIndex] = {
-                            path: newPath,
-                            name: newName
-                        };
-                        changed = true;
-                    }
-                }
+                changed = renameGroupedFilePath(groups, oldPath, newPath) > 0 || changed;
             }
 
             if (changed) {
@@ -762,6 +745,35 @@ function registerCommands(context: vscode.ExtensionContext) {
                 });
                 await vscode.window.showTextDocument(document, { preview: false });
             }
+        })
+    );
+
+    // Copy normalized paths for all existing files in a group tree
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.copyFilePaths', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand(t('groupPaths.pick'), item);
+            if (!targetGroup) {
+                return;
+            }
+
+            const clipboardText = buildGroupFilePathsText(
+                targetGroup.id,
+                storageService.getAllGroups(),
+                (filePath) => fs.existsSync(filePath)
+            );
+
+            if (!clipboardText) {
+                void vscode.window.showInformationMessage(t('groupPaths.empty', { name: targetGroup.name }));
+                return;
+            }
+
+            await vscode.env.clipboard.writeText(clipboardText);
+            const fileCount = clipboardText.split('\n').length;
+            void vscode.window.showInformationMessage(t('groupPaths.copied', {
+                count: fileCount,
+                fileLabel: countLabel(fileCount, 'noun.file.one', 'noun.file.other'),
+                name: targetGroup.name
+            }));
         })
     );
 
@@ -1058,6 +1070,11 @@ function registerCommands(context: vscode.ExtensionContext) {
                     actionId: 'duplicate'
                 },
                 {
+                    label: t('groupActions.copyPaths.label'),
+                    description: t('groupActions.copyPaths.description'),
+                    actionId: 'copy-paths'
+                },
+                {
                     label: t('groupActions.export.label'),
                     description: t('groupActions.export.description'),
                     actionId: 'export'
@@ -1105,6 +1122,9 @@ function registerCommands(context: vscode.ExtensionContext) {
                     return;
                 case 'duplicate':
                     await vscode.commands.executeCommand('fileGroups.duplicateGroup', targetItem);
+                    return;
+                case 'copy-paths':
+                    await vscode.commands.executeCommand('fileGroups.copyFilePaths', targetItem);
                     return;
                 case 'export':
                     await vscode.commands.executeCommand('fileGroups.exportGroupShare', targetItem);
@@ -1700,8 +1720,6 @@ function registerCommands(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('fileGroups.cleanupMissingFiles', async () => {
             const groups = storageService.getAllGroups();
             let removedCount = 0;
-            const fs = require('fs');
-
             for (const group of groups) {
                 const originalLength = group.files.length;
                 group.files = group.files.filter(file => {

@@ -5,6 +5,7 @@
   "command.createSmartGroups.title": "スマートグループを作成",
   "command.importSharedGroup.title": "共有グループをインポート",
   "command.exportGroupShare.title": "共有可能な JSON としてエクスポート",
+  "command.copyFilePaths.title": "ファイル パスをコピー",
   "command.groupActions.title": "その他のグループ操作...",
   "command.quickOpen.title": "グループからクイックオープン",
   "command.createGroup.title": "グループを作成",

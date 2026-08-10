@@ -147,7 +147,9 @@ Paths are relative, so the configuration can be committed to Git and shared with
 
 You can also export an individual group tree as shareable JSON and import it elsewhere.
 
-Example:
+See the copy-paste [shared-group JSON recipes](docs/shared-group-recipes.md) for frontend/backend, bugfix, PR review, and documentation workflows.
+
+Workspace storage example:
 
 ```json
 {
@@ -188,6 +190,7 @@ Example:
 | `File Groups: Create Smart Groups` | Auto-build groups by project area or language family |
 | `File Groups: Import Shared Group` | Import shareable CodeGroup JSON |
 | `File Groups: Export Group as Shareable JSON` | Export a reusable group tree |
+| `File Groups: Copy File Paths` | Copy existing files from a group and its subgroups, one normalized path per line |
 | `File Groups: More Group Actions...` | Rename, duplicate, move, sort, export, and more |
 | `File Groups: Create Group` | Create a root group |
 | `File Groups: Create Group from Open Editors` | Build a working set from open tabs |

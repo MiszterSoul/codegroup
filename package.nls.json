@@ -5,6 +5,7 @@
   "command.createSmartGroups.title": "Create Smart Groups",
   "command.importSharedGroup.title": "Import Shared Group",
   "command.exportGroupShare.title": "Export Group as Shareable JSON",
+  "command.copyFilePaths.title": "Copy File Paths",
   "command.groupActions.title": "More Group Actions...",
   "command.quickOpen.title": "Quick Open from Groups",
   "command.createGroup.title": "Create Group",

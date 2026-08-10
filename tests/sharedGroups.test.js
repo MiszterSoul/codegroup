@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { describe, test } from 'node:test';
 import { buildSharedGroupPayload, importSharedGroupPayload, isSharedGroupPayload } from '../src/sharedGroups.ts';
@@ -124,5 +125,15 @@ describe('shared groups', () => {
     assert.equal(imported[0]?.files[0]?.path.replace(/\\/g, '/'), 'c:/repo/src/app.tsx');
     assert.equal(imported[0]?.order, 3);
     assert.equal(imported[1]?.order, 4);
+  });
+
+  test('keeps every documented shared-group recipe valid', async () => {
+    const recipes = await readFile(new URL('../docs/shared-group-recipes.md', import.meta.url), 'utf8');
+    const jsonBlocks = [...recipes.matchAll(/```json\s+([\s\S]*?)```/g)].map((match) => match[1]);
+
+    assert.equal(jsonBlocks.length, 4);
+    for (const json of jsonBlocks) {
+      assert.equal(isSharedGroupPayload(JSON.parse(json)), true);
+    }
   });
 });

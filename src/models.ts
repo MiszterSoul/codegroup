@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { countLabel, t } from './i18n';
 import { NORMALIZED_CURRENT_USERNAME, normalizeUsername } from './userInfo';
+import { buildActionAccessibilityLabel, joinAccessibilityLabel } from './accessibility';
 
 
 
@@ -326,6 +327,12 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             this.description = sectionKind === 'actions'
                 ? t('tree.section.quickActions.description')
                 : (hasChildren ? countLabel(totalItemCount, 'noun.group.one', 'noun.group.other') : undefined);
+            this.accessibilityInformation = {
+                label: joinAccessibilityLabel([
+                    sectionKind === 'actions' ? t('tree.section.quickActions') : t('tree.section.globalGroups'),
+                    typeof this.description === 'string' ? this.description : undefined
+                ])
+            };
         } else if (itemType === 'action') {
             this.id = `action:${actionDefinition?.id ?? 'unknown'}`;
             this.contextValue = 'action';
@@ -333,6 +340,12 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             this.description = actionDefinition?.description;
             this.tooltip = actionDefinition?.detail ?? actionDefinition?.description ?? actionDefinition?.label ?? t('tree.action.default');
             this.command = actionDefinition?.command;
+            this.accessibilityInformation = {
+                label: buildActionAccessibilityLabel(
+                    actionDefinition?.label ?? t('tree.action.default'),
+                    actionDefinition?.description
+                )
+            };
         } else if (file) {
             this.id = `${group!.id}:file:${file.path}`;
         } else {
@@ -361,6 +374,13 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             this.resourceUri = vscode.Uri.file(file.path);
             this.tooltip = file.path;
             this.description = getParentFoldersSuffix(file.path, 2);
+            this.accessibilityInformation = {
+                label: joinAccessibilityLabel([
+                    file.name,
+                    file.isDirectory ? t('noun.folder.one') : t('noun.file.one'),
+                    file.path
+                ])
+            };
 
             if (file.isDirectory) {
                 // Folder item - show folder icon and reveal in explorer on click
@@ -434,6 +454,16 @@ export class FileGroupTreeItem extends vscode.TreeItem {
             }
 
             this.description = descriptionParts.length > 0 ? descriptionParts.join(' • ') : t('group.description.empty');
+            this.accessibilityInformation = {
+                label: joinAccessibilityLabel([
+                    group.name,
+                    group.isGlobal ? t('group.accessibility.global') : t('group.accessibility.local'),
+                    group.pinned ? t('group.accessibility.pinned') : undefined,
+                    hasDetails ? t('group.accessibility.hasDetails') : undefined,
+                    group.shortDescription,
+                    statsDescription
+                ])
+            };
 
             const tooltipLines: string[] = [`**${group.name}**`];
 

@@ -5,6 +5,7 @@
   "command.createSmartGroups.title": "Okos csoportok létrehozása",
   "command.importSharedGroup.title": "Megosztott csoport importálása",
   "command.exportGroupShare.title": "Exportálás megosztható JSON-ként",
+  "command.copyFilePaths.title": "Fájlútvonalak másolása",
   "command.groupActions.title": "További csoportműveletek...",
   "command.quickOpen.title": "Gyors megnyitás csoportokból",
   "command.createGroup.title": "Csoport létrehozása",

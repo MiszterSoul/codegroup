@@ -993,8 +993,8 @@ export class GroupEditorPanel {
         <div class="grid">
             <section class="card">
                 <h2>${escapeHtml(t('editor.settings.title'))}</h2>
-              <p class="template-kicker">${escapeHtml(t('editor.template.kicker'))}</p>
-              <div class="template-grid">
+              <p id="template-kicker" class="template-kicker">${escapeHtml(t('editor.template.kicker'))}</p>
+              <div class="template-grid" role="group" aria-label="${escapeHtml(t('editor.template.groupLabel'))}" aria-describedby="template-kicker">
                 ${GROUP_EDITOR_TEMPLATES.map((template) => `<button
                   class="template-button"
                   type="button"
@@ -1069,10 +1069,10 @@ export class GroupEditorPanel {
                         <label>${escapeHtml(t('editor.options.label'))}</label>
                             <div class="toggle-row">
                                 <div>
-                            <strong>${escapeHtml(t('editor.pin.title'))}</strong>
-                            <div class="hint">${escapeHtml(t('editor.pin.hint'))}</div>
+                            <strong id="pin-title">${escapeHtml(t('editor.pin.title'))}</strong>
+                            <div id="pin-hint" class="hint">${escapeHtml(t('editor.pin.hint'))}</div>
                                 </div>
-                                <input id="pinned" name="pinned" type="checkbox" ${group.pinned ? 'checked' : ''}>
+                                <input id="pinned" name="pinned" type="checkbox" aria-labelledby="pin-title" aria-describedby="pin-hint" ${group.pinned ? 'checked' : ''}>
                             </div>
                         </div>
                     </div>
@@ -1112,8 +1112,8 @@ export class GroupEditorPanel {
                     <button class="danger" type="button" data-action="remove-missing-files">${escapeHtml(t('editor.actions.removeMissing'))}</button>
                 </div>
 
-                <div class="file-list">
-                    ${directFiles.length === 0 ? `<div class="empty-state">${escapeHtml(t('editor.emptyState'))}</div>` : directFiles.map((file) => {
+                <div class="file-list" role="list" aria-label="${escapeHtml(t('editor.membership.title'))}">
+                    ${directFiles.length === 0 ? `<div class="empty-state" role="listitem">${escapeHtml(t('editor.emptyState'))}</div>` : directFiles.map((file) => {
       const exists = fileExists(file.path);
       const parentDirectory = path.dirname(file.path);
       const badges: string[] = [];
@@ -1126,15 +1126,15 @@ export class GroupEditorPanel {
         badges.push(`<span class="badge">${escapeHtml(t('editor.badge.missing'))}</span>`);
       }
 
-      return `<div class="file-row">
+      return `<div class="file-row" role="listitem">
                             <div class="file-main">
                                 <div class="file-name">${escapeHtml(file.name)}</div>
                                 <div class="file-path">${escapeHtml(parentDirectory)}</div>
                                 <div class="file-badges">${badges.join('')}</div>
                             </div>
                             <div class="file-actions">
-                              <button class="ghost" type="button" data-action="open-file" data-path="${escapeHtml(file.path)}" data-directory="${file.isDirectory ? 'true' : 'false'}" ${exists ? '' : 'disabled'}>${escapeHtml(t('action.open'))}</button>
-                              <button class="danger" type="button" data-action="remove-file" data-path="${escapeHtml(file.path)}">${escapeHtml(t('action.remove'))}</button>
+                              <button class="ghost" type="button" data-action="open-file" data-path="${escapeHtml(file.path)}" data-directory="${file.isDirectory ? 'true' : 'false'}" aria-label="${escapeHtml(t('editor.actions.openFileAccessible', { path: file.path }))}" ${exists ? '' : 'disabled'}>${escapeHtml(t('action.open'))}</button>
+                              <button class="danger" type="button" data-action="remove-file" data-path="${escapeHtml(file.path)}" aria-label="${escapeHtml(t('editor.actions.removeFileAccessible', { path: file.path }))}">${escapeHtml(t('action.remove'))}</button>
                             </div>
                         </div>`;
     }).join('')}
