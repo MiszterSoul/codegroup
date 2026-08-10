@@ -1,52 +1,66 @@
 # Contributing to CodeGroup
 
-Thank you for your interest in contributing to CodeGroup! 🎉
+Thank you for your interest in contributing to CodeGroup.
 
 ## Ways to Contribute
 
-### 🐛 Report Bugs
+### Report Bugs
 
-Found a bug? Please [open an issue](https://github.com/MiszterSoul/codegroup/issues/new?labels=bug) with:
+Found a bug? Please use the repository's **Bug report** issue form and include:
 
 - VS Code version
-- Extension version
-- Steps to reproduce
-- Expected vs actual behavior
-- Screenshots if applicable
+- CodeGroup version
+- operating system
+- steps to reproduce
+- expected vs. actual behavior
+- screenshots, GIFs, or relevant logs when useful
 
-### 💡 Suggest Features
+### Suggest Features
 
-Have an idea? [Open a feature request](https://github.com/MiszterSoul/codegroup/issues/new?labels=enhancement) with:
+Use the **Feature request** issue form and explain:
 
-- Clear description of the feature
-- Use case / why it would be useful
-- Mockups or examples if possible
+- the workflow problem
+- the proposed behavior
+- a concrete example
+- alternatives or workarounds you already tried, if any
 
-### 🔧 Submit Pull Requests
+### Submit Pull Requests
 
-1. **Fork** the repository
+1. **Fork** the repository.
 2. **Clone** your fork:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/codegroup.git
    cd codegroup
    ```
-3. **Install dependencies**:
+
+3. **Install the locked dependencies**:
+
    ```bash
-   npm install
+   npm ci
    ```
-4. **Create a branch** for your changes:
+
+4. **Create a focused branch**:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
-5. **Make your changes**
-6. **Test** your changes:
-   - Press `F5` in VS Code to launch the Extension Development Host
-   - Verify your changes work as expected
-7. **Commit** with a clear message:
+
+5. Make your changes.
+6. Run the validation suite:
+
    ```bash
-   git commit -m "feat: add XYZ feature"
+   npm run verify
    ```
-8. **Push** and create a Pull Request
+
+7. For extension-host behavior, also run:
+
+   ```bash
+   npm run test:extension
+   ```
+
+8. Commit with a clear conventional commit message.
+9. Push the branch and open a Pull Request.
 
 ## Development Setup
 
@@ -59,91 +73,95 @@ Have an idea? [Open a feature request](https://github.com/MiszterSoul/codegroup/
 ### Getting Started
 
 ```bash
-# Install the locked dependencies
 npm ci
-
-# Type-check, lint, and compile
 npm run compile
-
-# Run unit tests and all static checks
 npm run verify
+```
 
-# Run the extension in an isolated VS Code 1.74 host
-npm run test:extension
+For continuous development:
 
-# Watch for changes (recommended during development)
+```bash
 npm run watch
 ```
 
 ### Running the Extension
 
-1. Open the project in VS Code
-2. Press `F5` to launch Extension Development Host
-3. The extension will be active in the new window
+1. Open the project in VS Code.
+2. Press `F5` to launch the Extension Development Host.
+3. Test the changed workflow in the new window.
 
-For release validation and sharing:
+For release validation and local sharing:
 
 ```bash
-# Verify and create a production VSIX
 npm run package:vsix
-
-# Inspect the exact packaged file list
 npm run package:list
-
-# Install the artifact locally
 code --install-extension dist/codegroup-file-organizer.vsix --force
 ```
 
 ### Project Structure
 
-```
+```text
 codegroup/
 ├── src/
-│   ├── extension.ts          # Extension entry point
-│   ├── fileGroupsProvider.ts # Tree view provider
-│   ├── fileDecorationProvider.ts # File decorations
-│   ├── storageService.ts     # Data persistence
-│   ├── models.ts             # TypeScript interfaces
-│   └── userInfo.ts           # Creator attribution helpers
-├── tests/                    # Unit and extension-host tests
-├── images/                   # Icons and screenshots
-├── package.json              # Extension manifest
-└── tsconfig.json             # TypeScript config
+│   ├── extension.ts
+│   ├── fileGroupsProvider.ts
+│   ├── fileDecorationProvider.ts
+│   ├── storageService.ts
+│   ├── models.ts
+│   └── userInfo.ts
+├── tests/
+├── images/
+├── package.json
+└── tsconfig.json
 ```
+
+## Pull Request Expectations
+
+Keep pull requests focused and easy to review.
+
+Before opening a PR:
+
+- run `npm run verify`
+- add or update tests for behavioral changes when practical
+- update README/CHANGELOG documentation when user-facing behavior changes
+- avoid unrelated formatting or refactors in the same PR
+- include screenshots or GIFs for visible UI changes
 
 ## Code Style
 
-- Use TypeScript
-- Follow existing code patterns
-- Add JSDoc comments for public functions
-- Keep commits focused and atomic
+- Use TypeScript.
+- Follow existing code patterns.
+- Prefer clear, small functions over clever abstractions.
+- Add comments where intent is not obvious from the code.
+- Keep commits focused and atomic.
 
 ## Commit Messages
 
-Use conventional commit format:
+Use conventional commit prefixes:
 
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `refactor:` Code refactoring
-- `test:` Adding tests
-- `chore:` Maintenance tasks
+- `feat:` new feature
+- `fix:` bug fix
+- `docs:` documentation
+- `refactor:` code refactoring
+- `test:` tests
+- `chore:` maintenance
 
 Examples:
-```
+
+```text
 feat: add keyboard shortcuts for group navigation
 fix: handle file rename when path contains spaces
-docs: update README with new features
+docs: add shared group examples
 ```
 
 ## Good First Issues
 
-Looking for something to work on? Check out issues labeled [`good first issue`](https://github.com/MiszterSoul/codegroup/labels/good%20first%20issue) – these are great for newcomers!
+Looking for something small to start with? Check issues labeled [`good first issue`](https://github.com/MiszterSoul/codegroup/labels/good%20first%20issue).
 
-## Questions?
+Good first contributions usually include documentation, tests, localization, or isolated commands that do not require changing the storage format.
 
-Feel free to [open an issue](https://github.com/MiszterSoul/codegroup/issues) for any questions.
+## Questions
 
----
+If a question may help other users or contributors too, open an issue so the answer remains searchable.
 
-Thank you for contributing! ❤️
+Thanks for contributing to CodeGroup.
