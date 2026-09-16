@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { compareGroupOrder, getDescendantGroupIds } from './groupHierarchy';
+import { formatTags, normalizeTags, parseTags } from './tags';
 
 type WebGroupFile = {
   path: string;
@@ -34,31 +36,6 @@ type WebTreeNode =
 
 const STORAGE_KEY = 'fileGroups';
 const CONFIG_PATH = ['.vscode', 'file-groups.json'];
-
-function normalizeTags(values: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const tags: string[] = [];
-  for (const value of values) {
-    const tag = value.trim().replace(/^#+/, '').replace(/\s+/g, '-').toLowerCase().slice(0, 32);
-    if (!tag || seen.has(tag)) {
-      continue;
-    }
-    seen.add(tag);
-    tags.push(tag);
-    if (tags.length === 24) {
-      break;
-    }
-  }
-  return tags;
-}
-
-function parseTags(value: string): string[] {
-  return normalizeTags(value.split(/[,;\n]+/));
-}
-
-function formatTags(tags?: readonly string[]): string {
-  return normalizeTags(tags ?? []).map(tag => `#${tag}`).join(' ');
-}
 
 function createId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
@@ -230,7 +207,7 @@ class WebGroupsProvider implements vscode.TreeDataProvider<WebTreeNode> {
     if (!node) {
       const groups = this.store.getGroups()
         .filter(group => !group.parentId)
-        .sort((left, right) => Number(right.pinned) - Number(left.pinned) || left.order - right.order)
+        .sort(compareGroupOrder)
         .map(group => ({ kind: 'group', group }) as WebTreeNode);
       return [
         ...groups,
@@ -246,7 +223,7 @@ class WebGroupsProvider implements vscode.TreeDataProvider<WebTreeNode> {
 
     const childGroups = this.store.getGroups()
       .filter(group => group.parentId === node.group.id)
-      .sort((left, right) => left.order - right.order)
+      .sort(compareGroupOrder)
       .map(group => ({ kind: 'group', group }) as WebTreeNode);
     const files = node.group.files.map(file => ({ kind: 'file', group: node.group, file }) as WebTreeNode);
     return [...childGroups, ...files];
@@ -377,19 +354,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
 
   const openFiles = async (groupId: string, includeChildren: boolean) => {
-    const groupIds = new Set([groupId]);
-    if (includeChildren) {
-      const pending = [groupId];
-      while (pending.length) {
-        const parentId = pending.pop()!;
-        for (const child of store.getGroups().filter(group => group.parentId === parentId)) {
-          if (!groupIds.has(child.id)) {
-            groupIds.add(child.id);
-            pending.push(child.id);
-          }
-        }
-      }
-    }
+    const groupIds = includeChildren
+      ? getDescendantGroupIds(groupId, store.getGroups())
+      : new Set([groupId]);
     for (const file of store.getGroups().filter(group => groupIds.has(group.id)).flatMap(group => group.files)) {
       const uri = !file.isDirectory ? store.uriFor(file.path) : undefined;
       if (uri) {

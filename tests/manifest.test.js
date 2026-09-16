@@ -70,5 +70,5 @@ test('includes a first-install walkthrough with current screenshots', async () =
   assert.ok(walkthrough.steps.every(step => step.completionEvents.length > 0));
   assert.match(extensionSource, /workbench\.action\.openWalkthrough/);
   assert.match(extensionSource, /#codegroup\.gettingStarted/);
-  assert.match(providerSource, /command: 'fileGroups\.openGettingStarted'/);
+  assert.match(providerSource, /fileGroups\.openGettingStarted/);
 });

@@ -1,5 +1,6 @@
 import * as path from 'path';
 import type { FileGroup } from './models';
+import { canonicalFilePath } from './fileUtils';
 
 export type PathExists = (filePath: string) => boolean;
 
@@ -60,11 +61,12 @@ export function collectGroupFilePaths(
             }
 
             const normalizedPath = path.normalize(file.path);
-            if (seenPaths.has(normalizedPath)) {
+            const pathKey = canonicalFilePath(normalizedPath);
+            if (seenPaths.has(pathKey)) {
                 continue;
             }
 
-            seenPaths.add(normalizedPath);
+            seenPaths.add(pathKey);
             paths.push(normalizedPath);
         }
 

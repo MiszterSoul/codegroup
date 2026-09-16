@@ -2,13 +2,15 @@ import { randomBytes } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { countLabel, getConfiguredLanguage, getLocalizedTemplateText, t } from './i18n';
+import { getConfiguredLanguage, getLocalizedTemplateText, t } from './i18n';
 import { FileGroup, GroupFile, GROUP_COLORS, GROUP_ICONS, isHexColor } from './models';
 import { FileGroupDecorationProvider } from './fileDecorationProvider';
 import { FileGroupsProvider } from './fileGroupsProvider';
 import { GROUP_EDITOR_TEMPLATES } from './smartGroups';
 import { StorageService } from './storageService';
 import { formatTags, parseTags } from './tags';
+import { canonicalFilePath, getFileName } from './fileUtils';
+import { collectOpenEditorUris, toGroupFile } from './workspaceFileUtils';
 
 type StatusLevel = 'info' | 'warning' | 'error';
 
@@ -65,18 +67,9 @@ function escapeHtml(value?: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function getFileName(filePath: string): string {
-  return path.basename(filePath);
-}
-
 function normalizeText(value: string): string | undefined {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function canonicalFilePath(filePath: string): string {
-  const normalized = path.normalize(filePath);
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
 }
 
 function parseMessage(value: unknown): GroupEditorMessage | undefined {
@@ -144,59 +137,6 @@ function dedupeFiles(files: GroupFile[]): GroupFile[] {
   });
 }
 
-function dedupeUris(uris: vscode.Uri[]): vscode.Uri[] {
-  const seen = new Set<string>();
-
-  return uris.filter((uri) => {
-    const uriKey = canonicalFilePath(uri.fsPath);
-    if (seen.has(uriKey)) {
-      return false;
-    }
-
-    seen.add(uriKey);
-    return true;
-  });
-}
-
-async function toGroupFile(uri: vscode.Uri): Promise<GroupFile> {
-  let isDirectory = false;
-
-  try {
-    const stat = await vscode.workspace.fs.stat(uri);
-    isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
-  } catch {
-    // Fall back to treating the selected resource as a file.
-  }
-
-  return {
-    path: uri.fsPath,
-    name: getFileName(uri.fsPath),
-    isDirectory
-  };
-}
-
-function collectOpenEditorUris(): vscode.Uri[] {
-  const uris: vscode.Uri[] = [];
-
-  for (const tabGroup of vscode.window.tabGroups.all) {
-    for (const tab of tabGroup.tabs) {
-      const tabInput = tab.input;
-      if (!tabInput || typeof tabInput !== 'object' || !('uri' in tabInput)) {
-        continue;
-      }
-
-      const uri = (tabInput as { uri: vscode.Uri }).uri;
-      if (uri.scheme !== 'file') {
-        continue;
-      }
-
-      uris.push(uri);
-    }
-  }
-
-  return dedupeUris(uris);
-}
-
 export class GroupEditorPanel {
   private static readonly panels = new Map<string, GroupEditorPanel>();
 
@@ -208,7 +148,6 @@ export class GroupEditorPanel {
   }
 
   static show(
-    context: vscode.ExtensionContext,
     storageService: StorageService,
     provider: FileGroupsProvider,
     decorationProvider: FileGroupDecorationProvider,
@@ -231,7 +170,6 @@ export class GroupEditorPanel {
       }
     );
 
-    void context;
     const groupEditorPanel = new GroupEditorPanel(panel, storageService, provider, decorationProvider, groupId);
     GroupEditorPanel.panels.set(groupId, groupEditorPanel);
   }
@@ -794,7 +732,7 @@ export class GroupEditorPanel {
             border: 1px solid color-mix(in srgb, var(--vscode-widget-border) 70%, transparent);
         }
 
-        .meta-item .label
+        .meta-item .label {
             display: block;
             font-size: 11px;
             color: var(--vscode-descriptionForeground);
@@ -1025,7 +963,7 @@ export class GroupEditorPanel {
 
                         <div class="field full">
                         <label for="tags">${escapeHtml(t('editor.tags.label'))}</label>
-                        <input id="tags" name="tags" type="text" value="${escapeHtml(group.tags?.join(', '))}" placeholder="frontend, urgent, review" aria-describedby="tags-hint">
+                        <input id="tags" name="tags" type="text" value="${escapeHtml(group.tags?.join(', '))}" placeholder="${escapeHtml(t('tags.placeholder'))}" aria-describedby="tags-hint">
                         <div id="tags-hint" class="hint">${escapeHtml(t('editor.tags.hint'))}</div>
                         </div>
 
@@ -1050,7 +988,7 @@ export class GroupEditorPanel {
 
                         <div class="field">
                         <label for="badgeText">${escapeHtml(t('editor.badge.label'))}</label>
-                            <input id="badgeText" name="badgeText" type="text" value="${escapeHtml(group.badgeText)}" maxlength="2" placeholder="UI">
+                            <input id="badgeText" name="badgeText" type="text" value="${escapeHtml(group.badgeText)}" maxlength="2" placeholder="${escapeHtml(t('group.badge.placeholder'))}">
                         </div>
 
                         <div class="field">

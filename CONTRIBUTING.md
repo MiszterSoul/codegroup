@@ -104,9 +104,17 @@ code --install-extension dist/codegroup-file-organizer.vsix --force
 codegroup/
 ├── src/
 │   ├── extension.ts
+│   ├── browserExtension.ts
 │   ├── fileGroupsProvider.ts
 │   ├── fileDecorationProvider.ts
+│   ├── groupEditorPanel.ts
+│   ├── groupHierarchy.ts
+│   ├── fileUtils.ts
+│   ├── workspaceFileUtils.ts
 │   ├── storageService.ts
+│   ├── sharedGroups.ts
+│   ├── smartGroups.ts
+│   ├── i18n.ts
 │   ├── models.ts
 │   └── userInfo.ts
 ├── tests/

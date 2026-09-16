@@ -1,12 +1,7 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { StorageService } from './storageService';
 import { isHexColor, getThemeColorForHex, FileGroup } from './models';
-
-function canonicalFilePath(filePath: string): string {
-    const normalized = path.normalize(filePath);
-    return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
-}
+import { canonicalFilePath } from './fileUtils';
 
 /**
  * Provides file decorations (colors) for files that belong to groups.
@@ -19,7 +14,7 @@ export class FileGroupDecorationProvider implements vscode.FileDecorationProvide
     private readonly storageSubscription: vscode.Disposable;
     private decorations = new Map<string, vscode.FileDecoration>();
 
-    constructor(private storageService: StorageService) {
+    constructor(private readonly storageService: StorageService) {
         this.rebuildCache();
         this.storageSubscription = storageService.onDidChange(() => this.refresh());
     }

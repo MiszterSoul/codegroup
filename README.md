@@ -124,8 +124,6 @@ Core groups, file bookmarks, tags, Quick Open, and the Getting Started guide wor
 | `File Groups: Find Duplicate Files` | Find files used in multiple groups |
 | `File Groups: Clean Up Missing Files` | Remove deleted files |
 | `File Groups: Expand/Collapse All` | Expand or collapse the tree |
-| `File Groups: Create Global Group` | Create a cross-project group |
-| `File Groups: Toggle Hide Global Groups` | Show/hide global groups for a workspace |
 
 </details>
 

@@ -74,11 +74,6 @@ export interface FileGroup {
     isGlobal?: boolean;
 }
 
-export type OpenGroupedFileCommandArgs = {
-    groupId: string;
-    filePath: string;
-};
-
 /**
  * File format for .vscode/file-groups.json
  */
@@ -163,7 +158,6 @@ export const GROUP_ICONS: { id: string; label: string }[] = [
     { id: 'tag', label: '$(tag) Tag' },
     { id: 'target', label: '$(target) Target' },
     { id: 'tasklist', label: '$(tasklist) Tasklist' },
-    { id: 'checklist', label: '$(checklist) Checklist' },
     { id: 'tools', label: '$(tools) Tools' },
     { id: 'wrench', label: '$(wrench) Wrench' },
     { id: 'vm', label: '$(vm) VM' },
@@ -294,50 +288,66 @@ export type ActionTreeItemDefinition = {
     command: vscode.Command;
 };
 
+export type FileGroupTreeItemOptions = {
+    file?: GroupFile;
+    childCount?: number;
+    totalItemCount?: number;
+    sectionKind?: TreeSectionKind;
+    actionDefinition?: ActionTreeItemDefinition;
+};
+
 /**
  * Tree item representing either a group, file, or section header
  */
 export class FileGroupTreeItem extends vscode.TreeItem {
+    public readonly file?: GroupFile;
+    public readonly sectionKind?: TreeSectionKind;
+
     constructor(
         public readonly itemType: TreeItemType,
         public readonly group: FileGroup | null,
-        public readonly file?: GroupFile,
-        public readonly hasChildren: boolean = false,
-        public readonly childCount: number = 0,
-        public readonly totalItemCount: number = 0,
-        public readonly allFiles: GroupFile[] = [],
-        public readonly sectionKind?: TreeSectionKind,
-        public readonly actionDefinition?: ActionTreeItemDefinition
+        options: FileGroupTreeItemOptions = {}
     ) {
+        const {
+            file,
+            childCount = 0,
+            totalItemCount = 0,
+            sectionKind,
+            actionDefinition
+        } = options;
+
         super(
             itemType === 'section'
                 ? (sectionKind === 'actions' ? t('tree.section.quickActions') : t('tree.section.globalGroups'))
                 : (itemType === 'action'
                     ? actionDefinition?.label ?? t('tree.action.default')
-                    : (file ? file.name : group!.name)),
+                    : (file?.name ?? group?.name ?? t('tree.action.default'))),
             itemType === 'section'
                 ? vscode.TreeItemCollapsibleState.Expanded
                 : ((file || itemType === 'action')
                     ? vscode.TreeItemCollapsibleState.None
-                    : (group!.collapsed
+                    : (group?.collapsed
                         ? vscode.TreeItemCollapsibleState.Collapsed
                         : vscode.TreeItemCollapsibleState.Expanded))
         );
 
-        // Set unique ID for state preservation during refresh
+        this.file = file;
+        this.sectionKind = sectionKind;
+
         if (itemType === 'section') {
             this.id = sectionKind === 'actions' ? 'quick-actions-section' : 'global-groups-section';
             this.contextValue = sectionKind === 'actions' ? 'quickActionsSection' : 'globalSection';
             this.iconPath = new vscode.ThemeIcon(sectionKind === 'actions' ? 'sparkle' : 'globe');
             this.description = sectionKind === 'actions'
                 ? t('tree.section.quickActions.description')
-                : (hasChildren ? countLabel(totalItemCount, 'noun.group.one', 'noun.group.other') : undefined);
+                : (totalItemCount > 0 ? countLabel(totalItemCount, 'noun.group.one', 'noun.group.other') : undefined);
             this.accessibilityInformation = {
                 label: joinAccessibilityLabel([
                     sectionKind === 'actions' ? t('tree.section.quickActions') : t('tree.section.globalGroups'),
                     typeof this.description === 'string' ? this.description : undefined
                 ])
             };
+            return;
         } else if (itemType === 'action') {
             this.id = `action:${actionDefinition?.id ?? 'unknown'}`;
             this.contextValue = 'action';
@@ -351,30 +361,12 @@ export class FileGroupTreeItem extends vscode.TreeItem {
                     actionDefinition?.description
                 )
             };
-        } else if (file) {
-            this.id = `${group!.id}:file:${file.path}`;
-        } else {
-            this.id = `${group!.id}`;
-        }
-
-        // Set context value for menus
-        // Use pinned/unpinned suffix to show correct pin/unpin menu item
-        // Use global prefix for global groups
-        if (itemType === 'section') {
-            // Already set above
-        } else if (itemType === 'action') {
-            // Already set above
-        } else if (file) {
-            this.contextValue = 'file';
-        } else if (group!.isGlobal) {
-            // Global groups
-            this.contextValue = group!.pinned ? 'global_group_pinned' : 'global_group_unpinned';
-        } else {
-            // Local groups
-            this.contextValue = group!.pinned ? 'group_pinned' : 'group_unpinned';
+            return;
         }
 
         if (file && group) {
+            this.id = `${group.id}:file:${file.path}`;
+            this.contextValue = 'file';
             // File or folder item
             this.resourceUri = vscode.Uri.file(file.path);
             this.tooltip = file.path;
@@ -407,11 +399,23 @@ export class FileGroupTreeItem extends vscode.TreeItem {
                     }]
                 };
             }
-        } else if (group && itemType !== 'section') {
-            // Group item - build description with file count and child groups
-            const fileCount = group.files.filter(f => !f.isDirectory).length;
-            const folderCount = group.files.filter(f => f.isDirectory).length;
+            return;
+        }
 
+        if (!group) {
+            return;
+        }
+
+        this.id = group.id;
+        this.contextValue = group.isGlobal
+            ? (group.pinned ? 'global_group_pinned' : 'global_group_unpinned')
+            : (group.pinned ? 'group_pinned' : 'group_unpinned');
+
+        // Group item - build description with file count and child groups
+        const fileCount = group.files.filter(f => !f.isDirectory).length;
+        const folderCount = group.files.filter(f => f.isDirectory).length;
+
+        {
             // Build description parts
             const statsParts: string[] = [];
 

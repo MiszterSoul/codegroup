@@ -2,6 +2,7 @@ import * as path from 'path';
 import { FileGroup, GroupFile } from './models';
 import { resolveWorkspacePath, toWorkspaceRelativePath } from './pathUtils';
 import { normalizeTags } from './tags';
+import { getDescendantGroupIds } from './groupHierarchy';
 
 export type SharedFileGroup = {
   id: string;
@@ -44,35 +45,6 @@ function fromPortablePath(filePath: string, workspaceRoot?: string): string {
   }
 
   return resolveWorkspacePath(filePath, workspaceRoot);
-}
-
-function getDescendantGroupIds(rootGroupId: string, groups: readonly FileGroup[]): Set<string> {
-  const childrenByParent = new Map<string, FileGroup[]>();
-  for (const group of groups) {
-    if (!group.parentId) {
-      continue;
-    }
-
-    const children = childrenByParent.get(group.parentId) ?? [];
-    children.push(group);
-    childrenByParent.set(group.parentId, children);
-  }
-
-  const descendantIds = new Set<string>([rootGroupId]);
-  const pendingIds = [rootGroupId];
-  while (pendingIds.length > 0) {
-    const parentId = pendingIds.pop()!;
-    for (const child of childrenByParent.get(parentId) ?? []) {
-      if (descendantIds.has(child.id)) {
-        continue;
-      }
-
-      descendantIds.add(child.id);
-      pendingIds.push(child.id);
-    }
-  }
-
-  return descendantIds;
 }
 
 export function isSharedGroupPayload(value: unknown): value is SharedGroupPayload {

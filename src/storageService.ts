@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
-import { FileGroup, GroupFile, FileGroupsConfig } from './models';
+import type { FileGroup, GroupFile, FileGroupsConfig } from './models';
+import { canonicalFilePath } from './fileUtils';
+import { getDescendantGroupIds } from './groupHierarchy';
 import { resolveWorkspacePath, toWorkspaceRelativePath } from './pathUtils';
 import { normalizeTags } from './tags';
 
@@ -8,35 +10,49 @@ const CONFIG_FILE_NAME = '.vscode/file-groups.json';
 const GLOBAL_STORAGE_KEY = 'globalFileGroups';
 const GLOBAL_CONFIG_FILE_NAME = 'file-groups-global.json';
 
+function normalizeGroup(group: FileGroup, index: number, isGlobal: boolean): FileGroup {
+    return {
+        ...group,
+        order: group.order ?? index,
+        parentId: group.parentId ?? undefined,
+        shortDescription: group.shortDescription ?? undefined,
+        details: group.details ?? undefined,
+        tags: normalizeTags(group.tags ?? []),
+        files: (group.files ?? []).map((file) => ({
+            ...file,
+            tags: normalizeTags(file.tags ?? [])
+        })),
+        createdBy: group.createdBy ?? undefined,
+        collapsed: group.collapsed ?? false,
+        pinned: group.pinned ?? false,
+        badgeText: group.badgeText ?? undefined,
+        isGlobal
+    };
+}
+
 /**
  * Service for persisting file groups to workspace state and file
  */
-export class StorageService {
-    private _onDidChange = new vscode.EventEmitter<void>();
+export class StorageService implements vscode.Disposable {
+    private readonly _onDidChange = new vscode.EventEmitter<void>();
+    private readonly disposables: vscode.Disposable[] = [];
     readonly onDidChange = this._onDidChange.event;
 
-    constructor(private context: vscode.ExtensionContext) {
-        // Watch for file changes if workspace is open
+    constructor(private readonly context: vscode.ExtensionContext) {
         this.setupFileWatcher();
         this.setupGlobalFileWatcher();
     }
 
+    dispose(): void {
+        while (this.disposables.length > 0) {
+            this.disposables.pop()?.dispose();
+        }
+        this._onDidChange.dispose();
+    }
+
     private getStoredLocalGroups(): FileGroup[] {
         const localGroups = this.context.workspaceState.get<FileGroup[]>(STORAGE_KEY, []);
-        return localGroups.map((g, index) => ({
-            ...g,
-            order: g.order ?? index,
-            parentId: g.parentId ?? undefined,
-            shortDescription: g.shortDescription ?? undefined,
-            details: g.details ?? undefined,
-            tags: normalizeTags(g.tags ?? []),
-            files: g.files.map(file => ({ ...file, tags: normalizeTags(file.tags ?? []) })),
-            createdBy: g.createdBy ?? undefined,
-            collapsed: g.collapsed ?? false,
-            pinned: g.pinned ?? false,
-            badgeText: g.badgeText ?? undefined,
-            isGlobal: false
-        }));
+        return localGroups.map((group, index) => normalizeGroup(group, index, false));
     }
 
     private setupFileWatcher(): void {
@@ -53,6 +69,7 @@ export class StorageService {
             watcher.onDidChange(() => void reload());
             watcher.onDidCreate(() => void reload());
             watcher.onDidDelete(() => this._onDidChange.fire());
+            this.disposables.push(watcher);
         }
     }
 
@@ -76,6 +93,7 @@ export class StorageService {
             watcher.onDidChange(() => void reload());
             watcher.onDidCreate(() => void reload());
             watcher.onDidDelete(() => this._onDidChange.fire());
+            this.disposables.push(watcher);
         }
     }
 
@@ -105,8 +123,7 @@ export class StorageService {
      * Check if global groups should be hidden in current workspace
      */
     private shouldHideGlobalGroups(): boolean {
-        const configUri = this.getConfigFileUri();
-        if (!configUri) {
+        if (!this.getConfigFileUri()) {
             return false;
         }
 
@@ -116,28 +133,6 @@ export class StorageService {
         } catch {
             return false;
         }
-    }
-
-    /**
-     * Set whether to hide global groups in current workspace
-     */
-    async setHideGlobalGroups(hide: boolean): Promise<void> {
-        const configUri = this.getConfigFileUri();
-        if (!configUri) {
-            return;
-        }
-
-        // Update local config
-        const config = this.context.workspaceState.get<FileGroupsConfig>('fileGroupsConfig') || {
-            version: 2,
-            groups: []
-        };
-        config.hideGlobalGroups = hide;
-        await this.context.workspaceState.update('fileGroupsConfig', config);
-
-        // Save to file
-        await this.saveConfigToFile(config);
-        this._onDidChange.fire();
     }
 
     /**
@@ -213,20 +208,38 @@ export class StorageService {
      */
     getGlobalGroups(): FileGroup[] {
         const groups = this.context.globalState.get<FileGroup[]>(GLOBAL_STORAGE_KEY, []);
-        return groups.map((g, index) => ({
-            ...g,
-            order: g.order ?? index,
-            parentId: g.parentId ?? undefined,
-            shortDescription: g.shortDescription ?? undefined,
-            details: g.details ?? undefined,
-            tags: normalizeTags(g.tags ?? []),
-            files: g.files.map(file => ({ ...file, tags: normalizeTags(file.tags ?? []) })),
-            createdBy: g.createdBy ?? undefined,
-            collapsed: g.collapsed ?? false,
-            pinned: g.pinned ?? false,
-            badgeText: g.badgeText ?? undefined,
-            isGlobal: true
+        return groups.map((group, index) => normalizeGroup(group, index, true));
+    }
+
+    private async normalizeWorkspaceGroups(groups: readonly FileGroup[]): Promise<FileGroup[]> {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!workspaceRoot) {
+            return groups.map((group, index) => normalizeGroup(group, index, false));
+        }
+
+        return Promise.all(groups.map(async (group, index) => {
+            const files = await Promise.all((group.files ?? []).map(async (file) => {
+                const absolutePath = resolveWorkspacePath(file.path, workspaceRoot);
+                const isDirectory = file.isDirectory ?? await this.detectDirectory(absolutePath);
+
+                return {
+                    ...file,
+                    path: absolutePath,
+                    isDirectory
+                };
+            }));
+
+            return normalizeGroup({ ...group, files }, index, false);
         }));
+    }
+
+    private async detectDirectory(filePath: string): Promise<boolean> {
+        try {
+            const stat = await vscode.workspace.fs.stat(vscode.Uri.file(filePath));
+            return (stat.type & vscode.FileType.Directory) !== 0;
+        } catch {
+            return false;
+        }
     }
 
     /**
@@ -243,51 +256,15 @@ export class StorageService {
             const config: FileGroupsConfig = JSON.parse(content.toString());
 
             if (config.version && config.groups) {
-                // Convert relative paths to absolute paths and detect directories
-                const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-                if (workspaceRoot) {
-                    for (const group of config.groups) {
-                        const updatedFiles = [];
-                        for (const file of group.files) {
-                            const absolutePath = resolveWorkspacePath(file.path, workspaceRoot);
-                            let isDirectory = file.isDirectory;
+                const groups = await this.normalizeWorkspaceGroups(config.groups);
 
-                            // If isDirectory is not set, check the filesystem
-                            if (isDirectory === undefined) {
-                                try {
-                                    const uri = vscode.Uri.file(absolutePath);
-                                    const stat = await vscode.workspace.fs.stat(uri);
-                                    isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
-                                } catch {
-                                    isDirectory = false;
-                                }
-                            }
-
-                            updatedFiles.push({
-                                ...file,
-                                path: absolutePath,
-                                isDirectory
-                            });
-                        }
-                        group.files = updatedFiles;
-                        group.shortDescription = group.shortDescription ?? undefined;
-                        group.details = group.details ?? undefined;
-                        group.tags = normalizeTags(group.tags ?? []);
-                        group.files = group.files.map(file => ({ ...file, tags: normalizeTags(file.tags ?? []) }));
-                        group.createdBy = group.createdBy ?? undefined;
-                        group.collapsed = group.collapsed ?? false;
-                        group.pinned = group.pinned ?? false;
-                        group.badgeText = group.badgeText ?? undefined;
-                    }
-                }
-
-                await this.context.workspaceState.update(STORAGE_KEY, config.groups);
+                await this.context.workspaceState.update(STORAGE_KEY, groups);
 
                 // Also load hideGlobalGroups setting
                 if (config.hideGlobalGroups !== undefined) {
                     const configWithSetting: FileGroupsConfig = {
                         version: config.version,
-                        groups: config.groups,
+                        groups,
                         hideGlobalGroups: config.hideGlobalGroups
                     };
                     await this.context.workspaceState.update('fileGroupsConfig', configWithSetting);
@@ -315,20 +292,9 @@ export class StorageService {
             const config: FileGroupsConfig = JSON.parse(content.toString());
 
             if (config.version && config.groups) {
-                // Global groups store absolute paths, no conversion needed
-                for (const group of config.groups) {
-                    group.shortDescription = group.shortDescription ?? undefined;
-                    group.details = group.details ?? undefined;
-                    group.tags = normalizeTags(group.tags ?? []);
-                    group.files = group.files.map(file => ({ ...file, tags: normalizeTags(file.tags ?? []) }));
-                    group.createdBy = group.createdBy ?? undefined;
-                    group.collapsed = group.collapsed ?? false;
-                    group.pinned = group.pinned ?? false;
-                    group.badgeText = group.badgeText ?? undefined;
-                    group.isGlobal = true;
-                }
+                const groups = config.groups.map((group, index) => normalizeGroup(group, index, true));
 
-                await this.context.globalState.update(GLOBAL_STORAGE_KEY, config.groups);
+                await this.context.globalState.update(GLOBAL_STORAGE_KEY, groups);
                 return true;
             }
         } catch {
@@ -449,41 +415,9 @@ export class StorageService {
      */
     async deleteGroup(groupId: string): Promise<void> {
         const groups = this.getAllGroups();
-        const idsToDelete = this.getGroupAndChildIds(groupId, groups);
+        const idsToDelete = getDescendantGroupIds(groupId, groups);
         const filtered = groups.filter(g => !idsToDelete.has(g.id));
         await this.saveGroups(filtered);
-    }
-
-    /**
-     * Get a group ID and all its descendant IDs
-     */
-    private getGroupAndChildIds(groupId: string, groups: FileGroup[]): Set<string> {
-        const childrenByParent = new Map<string, FileGroup[]>();
-        for (const group of groups) {
-            if (!group.parentId) {
-                continue;
-            }
-
-            const children = childrenByParent.get(group.parentId) ?? [];
-            children.push(group);
-            childrenByParent.set(group.parentId, children);
-        }
-
-        const ids = new Set<string>([groupId]);
-        const pendingIds = [groupId];
-        while (pendingIds.length > 0) {
-            const parentId = pendingIds.pop()!;
-            for (const child of childrenByParent.get(parentId) ?? []) {
-                if (ids.has(child.id)) {
-                    continue;
-                }
-
-                ids.add(child.id);
-                pendingIds.push(child.id);
-            }
-        }
-
-        return ids;
     }
 
     /**
@@ -491,7 +425,7 @@ export class StorageService {
      */
     async updateGroupRecursive(groupId: string, updates: Partial<FileGroup>): Promise<void> {
         const groups = this.getAllGroups();
-        const idsToUpdate = this.getGroupAndChildIds(groupId, groups);
+        const idsToUpdate = getDescendantGroupIds(groupId, groups);
 
         const updatedGroups = groups.map(g =>
             idsToUpdate.has(g.id) ? { ...g, ...updates } : g
@@ -505,7 +439,7 @@ export class StorageService {
      */
     getAllFilesInGroup(groupId: string): GroupFile[] {
         const groups = this.getGroups();
-        const idsToInclude = this.getGroupAndChildIds(groupId, groups);
+        const idsToInclude = getDescendantGroupIds(groupId, groups);
         const files: GroupFile[] = [];
 
         groups.filter(g => idsToInclude.has(g.id)).forEach(group => {
@@ -536,8 +470,8 @@ export class StorageService {
         const groups = this.getAllGroups();
         const group = groups.find(g => g.id === groupId);
         if (group) {
-            // Check if file already exists in group
-            if (!group.files.some(f => f.path === file.path)) {
+            const fileKey = canonicalFilePath(file.path);
+            if (!group.files.some(existingFile => canonicalFilePath(existingFile.path) === fileKey)) {
                 group.files.push(file);
                 await this.saveGroups(groups);
                 return true;
@@ -554,9 +488,12 @@ export class StorageService {
         const group = groups.find(g => g.id === groupId);
         let addedCount = 0;
         if (group) {
+            const existingPaths = new Set(group.files.map(file => canonicalFilePath(file.path)));
             for (const file of files) {
-                if (!group.files.some(f => f.path === file.path)) {
+                const fileKey = canonicalFilePath(file.path);
+                if (!existingPaths.has(fileKey)) {
                     group.files.push(file);
+                    existingPaths.add(fileKey);
                     addedCount++;
                 }
             }
@@ -574,7 +511,13 @@ export class StorageService {
         const groups = this.getAllGroups();
         const group = groups.find(g => g.id === groupId);
         if (group) {
-            group.files = group.files.filter(f => f.path !== filePath);
+            const fileKey = canonicalFilePath(filePath);
+            const remainingFiles = group.files.filter(file => canonicalFilePath(file.path) !== fileKey);
+            if (remainingFiles.length === group.files.length) {
+                return;
+            }
+
+            group.files = remainingFiles;
             await this.saveGroups(groups);
         }
     }
@@ -585,7 +528,8 @@ export class StorageService {
     async updateFileInGroup(groupId: string, filePath: string, updates: Partial<GroupFile>): Promise<void> {
         const groups = this.getAllGroups();
         const group = groups.find(g => g.id === groupId);
-        const file = group?.files.find(item => item.path === filePath);
+        const fileKey = canonicalFilePath(filePath);
+        const file = group?.files.find(item => canonicalFilePath(item.path) === fileKey);
         if (!file) {
             return;
         }
@@ -602,7 +546,8 @@ export class StorageService {
         const group = groups.find(g => g.id === groupId);
         if (!group) { return; }
 
-        const draggedIndex = group.files.findIndex(f => f.path === draggedFilePath);
+        const draggedKey = canonicalFilePath(draggedFilePath);
+        const draggedIndex = group.files.findIndex(file => canonicalFilePath(file.path) === draggedKey);
         if (draggedIndex === -1) { return; }
 
         const [draggedFile] = group.files.splice(draggedIndex, 1);
@@ -611,7 +556,8 @@ export class StorageService {
             // Drop at the end
             group.files.push(draggedFile);
         } else {
-            const targetIndex = group.files.findIndex(f => f.path === targetFilePath);
+            const targetKey = canonicalFilePath(targetFilePath);
+            const targetIndex = group.files.findIndex(file => canonicalFilePath(file.path) === targetKey);
             if (targetIndex !== -1) {
                 // Insert before target
                 group.files.splice(targetIndex, 0, draggedFile);
@@ -631,26 +577,4 @@ export class StorageService {
         return this.getGroups().find(g => g.id === groupId);
     }
 
-    /**
-     * Reorder groups
-     */
-    async reorderGroups(groupIds: string[]): Promise<void> {
-        const groups = this.getAllGroups();
-        const reordered = groupIds.map((id, index) => {
-            const group = groups.find(g => g.id === id);
-            if (group) {
-                return { ...group, order: index };
-            }
-            return null;
-        }).filter((g): g is FileGroup => g !== null);
-
-        // Add any groups not in the new order at the end
-        const remainingGroups = groups.filter(g => !groupIds.includes(g.id));
-        remainingGroups.forEach((g, i) => {
-            g.order = reordered.length + i;
-            reordered.push(g);
-        });
-
-        await this.saveGroups(reordered);
-    }
 }

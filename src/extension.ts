@@ -16,6 +16,8 @@ import { isPathInsideWorkspace } from './pathUtils';
 import { buildGroupFilePathsText, collectGroupFilePaths } from './groupFilePaths';
 import { removeGroupedFilePath, renameGroupedFilePath } from './groupFileMaintenance';
 import { formatTags, parseTags } from './tags';
+import { canonicalFilePath, createGroupFile } from './fileUtils';
+import { collectOpenEditorUris, toGroupFile } from './workspaceFileUtils';
 
 let storageService: StorageService;
 let fileGroupsProvider: FileGroupsProvider;
@@ -34,10 +36,6 @@ type PresetGroupOptions = {
     color: string;
     shortDescription: string;
 };
-
-function getFileName(filePath: string): string {
-    return path.basename(filePath);
-}
 
 function getWorkspaceRoot(): string | undefined {
     return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -71,23 +69,16 @@ async function syncWorkbenchDisplayLanguage(
     return 'changed';
 }
 
-function createFileGroupEntry(filePath: string): GroupFile {
-    return {
-        path: filePath,
-        name: getFileName(filePath),
-        isDirectory: false
-    };
-}
-
 function dedupeGroupFiles(files: GroupFile[]): GroupFile[] {
     const seen = new Set<string>();
 
     return files.filter((file) => {
-        if (seen.has(file.path)) {
+        const fileKey = canonicalFilePath(file.path);
+        if (seen.has(fileKey)) {
             return false;
         }
 
-        seen.add(file.path);
+        seen.add(fileKey);
         return true;
     });
 }
@@ -155,10 +146,6 @@ async function openGroupedFile(
     await rememberRecentGroupFile(context, groupId, filePath);
 }
 
-function getAllStoredGroups(): FileGroup[] {
-    return storageService.getAllGroups();
-}
-
 function makeUniqueGroupName(existingNames: Set<string>, baseName: string): string {
     let candidate = baseName;
     let suffix = 2;
@@ -180,16 +167,12 @@ async function collectWorkspaceFilesForSmartGroups(): Promise<GroupFile[]> {
     );
 
     return dedupeGroupFiles(
-        uris.map((uri) => ({
-            path: uri.fsPath,
-            name: getFileName(uri.fsPath),
-            isDirectory: false
-        }))
+        uris.map((uri) => createGroupFile(uri.fsPath))
     );
 }
 
 async function createSuggestedGroups(suggestions: readonly SmartGroupSuggestion[]): Promise<FileGroup[]> {
-    const existingGroups = getAllStoredGroups();
+    const existingGroups = storageService.getAllGroups();
     const existingNames = new Set(existingGroups.map((group) => group.name.toLowerCase()));
     const nextGroups = [...existingGroups];
     const createdGroups: FileGroup[] = [];
@@ -224,25 +207,7 @@ async function createSuggestedGroups(suggestions: readonly SmartGroupSuggestion[
 
 
 function collectOpenEditorFiles(): GroupFile[] {
-    const files: GroupFile[] = [];
-
-    for (const tabGroup of vscode.window.tabGroups.all) {
-        for (const tab of tabGroup.tabs) {
-            const tabInput = tab.input;
-            if (!tabInput || typeof tabInput !== 'object' || !('uri' in tabInput)) {
-                continue;
-            }
-
-            const tabUri = (tabInput as { uri: vscode.Uri }).uri;
-            if (tabUri.scheme !== 'file') {
-                continue;
-            }
-
-            files.push(createFileGroupEntry(tabUri.fsPath));
-        }
-    }
-
-    return dedupeGroupFiles(files);
+    return collectOpenEditorUris().map((uri) => createGroupFile(uri.fsPath));
 }
 
 function runGitCommand(args: string[], cwd: string): Promise<string> {
@@ -299,7 +264,7 @@ async function collectGitChangedFiles(): Promise<GroupFile[] | undefined> {
         allPaths
             .map((relativePath) => path.resolve(repositoryRoot, relativePath))
             .filter((filePath) => isPathInsideWorkspace(filePath, workspaceRoot))
-            .map((filePath) => createFileGroupEntry(filePath))
+            .map((filePath) => createGroupFile(filePath))
     );
 }
 
@@ -320,7 +285,7 @@ async function createPresetGroup(options: PresetGroupOptions): Promise<void> {
         return;
     }
 
-    const groups = getAllStoredGroups();
+    const groups = storageService.getAllGroups();
     const newGroup: FileGroup = {
         id: generateId(),
         name: name.trim(),
@@ -362,7 +327,6 @@ async function createPresetGroup(options: PresetGroupOptions): Promise<void> {
  */
 async function checkForMissingFiles(): Promise<void> {
     const groups = storageService.getGroups();
-    const fs = require('fs');
     let missingCount = 0;
 
     for (const group of groups) {
@@ -390,15 +354,17 @@ async function checkForMissingFiles(): Promise<void> {
     }
 }
 
-export async function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
     // Initialize services
     storageService = new StorageService(context);
+    context.subscriptions.push(storageService);
 
     // Try to load from file first (both local and global)
     await storageService.loadFromFile();
     await storageService.loadFromGlobalFile();
 
     fileGroupsProvider = new FileGroupsProvider(storageService);
+    context.subscriptions.push(fileGroupsProvider);
     fileDecorationProvider = new FileGroupDecorationProvider(storageService);
 
     // Register file decoration provider (for tab/explorer colors)
@@ -469,7 +435,7 @@ export async function activate(context: vscode.ExtensionContext) {
 /**
  * Set up file system watcher to handle renamed, deleted, and moved files
  */
-function setupFileWatcher(context: vscode.ExtensionContext) {
+function setupFileWatcher(context: vscode.ExtensionContext): void {
     // Watch for file deletions
     const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*');
 
@@ -536,7 +502,7 @@ async function pickGroupForCommand(placeHolder: string, initialItem?: FileGroupT
     return groups.find(g => g.id === selected.groupId);
 }
 
-function registerCommands(context: vscode.ExtensionContext) {
+function registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.openGettingStarted', async () => {
             await vscode.commands.executeCommand(
@@ -614,7 +580,7 @@ function registerCommands(context: vscode.ExtensionContext) {
             });
 
             if (name) {
-                const groups = getAllStoredGroups();
+                const groups = storageService.getAllGroups();
                 const newGroup: FileGroup = {
                     id: generateId(),
                     name,
@@ -894,7 +860,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 getWorkspaceRoot(),
                 scopeSelection.scopeId,
                 generateId,
-                getAllStoredGroups().length,
+                storageService.getAllGroups().length,
                 CURRENT_USERNAME
             );
 
@@ -903,7 +869,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 return;
             }
 
-            await storageService.saveGroups([...getAllStoredGroups(), ...importedGroups]);
+            await storageService.saveGroups([...storageService.getAllGroups(), ...importedGroups]);
             fileGroupsProvider.refresh();
             fileDecorationProvider.refresh(importedGroups.flatMap((group) => group.files.map((file) => vscode.Uri.file(file.path))));
 
@@ -1031,7 +997,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 });
 
                 if (name) {
-                    const groups = getAllStoredGroups();
+                    const groups = storageService.getAllGroups();
                     const newGroup: FileGroup = {
                         id: generateId(),
                         name,
@@ -1058,7 +1024,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                 return;
             }
 
-            GroupEditorPanel.show(context, storageService, fileGroupsProvider, fileDecorationProvider, targetGroup.id);
+            GroupEditorPanel.show(storageService, fileGroupsProvider, fileDecorationProvider, targetGroup.id);
         })
     );
 
@@ -1617,25 +1583,9 @@ function registerCommands(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                const files: GroupFile[] = [];
+                const files = await Promise.all(filesToAdd.map(toGroupFile));
 
-                for (const fileUri of filesToAdd) {
-                    let isDirectory = false;
-                    try {
-                        const stat = await vscode.workspace.fs.stat(fileUri);
-                        isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
-                    } catch {
-                        // If stat fails, assume it's a file
-                    }
-
-                    files.push({
-                        path: fileUri.fsPath,
-                        name: getFileName(fileUri.fsPath),
-                        isDirectory
-                    });
-                }
-
-                const addedCount = await storageService.addFilesToGroup(selected.groupId, files);
+                await storageService.addFilesToGroup(selected.groupId, files);
                 fileGroupsProvider.refresh();
                 // Refresh decorations for added files
                 fileDecorationProvider.refresh(filesToAdd);
@@ -1660,7 +1610,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Go to group - shows which groups contain the file and reveals it in the tree
     context.subscriptions.push(
-        vscode.commands.registerCommand('fileGroups.goToGroup', async (uri: vscode.Uri, uris?: vscode.Uri[]) => {
+        vscode.commands.registerCommand('fileGroups.goToGroup', async (uri: vscode.Uri) => {
             // Use single URI (not multi-select for this command)
             const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
 
@@ -1925,7 +1875,7 @@ function registerCommands(context: vscode.ExtensionContext) {
                         badgeText: item.group.badgeText,
                         files: [...item.group.files], // Copy files array
                         sortOrder: item.group.sortOrder,
-                        order: getAllStoredGroups().length,
+                        order: storageService.getAllGroups().length,
                         parentId: item.group.parentId,
                         isGlobal: false // Copies are always local by default
                     };
@@ -1971,4 +1921,4 @@ function registerCommands(context: vscode.ExtensionContext) {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate(): void { }

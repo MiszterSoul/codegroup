@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.4.3] - 2026-09-16
+
+### Changed
+
+- **refactor:** Centralized shared bookmark, path, hierarchy, and drag-and-drop helpers across desktop and browser entry points.
+- **maintenance:** Removed unused storage APIs and tree-item fields, enabled strict TypeScript unused-code checks, and simplified group actions.
+- **editor:** Fixed malformed metadata styling and localized tag and badge placeholders.
+
+### Added
+
+- **test:** Added regression coverage for canonical paths, group ordering, and descendant traversal.
+
 ## [1.4.2] - 2026-08-10
 
 ### Added
