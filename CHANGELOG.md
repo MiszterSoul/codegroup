@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.5.1] - 2026-09-28
+
+### Changed
+
+- **docs:** Replace the small README lead image with a full VS Code screenshot of configured groups and bookmarked files, and include it in the extension package.
+
 ## [1.5.0] - 2026-09-28
 
 ### Added
