@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- markdownlint-disable MD022 MD024 MD032 -->
 
+## [1.5.0] - 2026-09-28
+
+### Added
+
+- **groups:** Stage changed bookmarked files from a group and its subgroups with an inline button, context action, or Command Palette command. Changes outside the group stay unstaged, including across multiple Git repositories.
+
+### Changed
+
+- **docs:** Show the configured group tree first in the README so the resulting Explorer view is visible before the setup actions.
+
 ## [1.4.3] - 2026-09-16
 
 ### Changed

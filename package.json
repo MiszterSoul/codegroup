@@ -2,7 +2,7 @@
   "name": "codegroup-file-organizer",
   "displayName": "CodeGroup - File Bookmarks & Organizer",
   "description": "Bookmark and organize related files into custom groups in VS Code. Create bookmark folders, smart groups, and working sets without moving files.",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "publisher": "PeterDev",
   "license": "MIT",
   "icon": "icon.png",
