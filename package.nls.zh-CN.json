@@ -9,6 +9,7 @@
   "command.importSharedGroup.title": "导入共享分组",
   "command.exportGroupShare.title": "导出为可共享 JSON",
   "command.copyFilePaths.title": "复制文件路径",
+  "command.stageGroupChanges.title": "暂存分组更改",
   "command.groupActions.title": "更多分组操作...",
   "command.quickOpen.title": "从分组中快速打开",
   "command.createGroup.title": "创建分组",

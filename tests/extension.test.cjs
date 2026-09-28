@@ -14,6 +14,7 @@ suite('CodeGroup extension', () => {
       'fileGroups.createGroup',
       'fileGroups.quickOpen',
       'fileGroups.openGroupEditor',
+      'fileGroups.stageGroupChanges',
       'fileGroups.importSharedGroup'
     ]) {
       assert.ok(commands.includes(command), `${command} was not registered`);

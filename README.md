@@ -46,6 +46,7 @@ Normal folders describe where files live. CodeGroup adds bookmark folders that d
 | Drag & drop | Move files, folders, tabs, groups, and subgroups naturally |
 | Smart Groups | Auto-build groups by project area or language family |
 | Working Sets | Create groups from open editors or Git changes |
+| Stage group changes | Stage modified bookmarked files from a group and its subgroups without staging unrelated files |
 | Quick Open | Search grouped files, group names, notes, and paths |
 | Searchable tags | Label groups and individual file bookmarks, then find them through Quick Open |
 | Global Groups | Reuse important groups across different workspaces |
@@ -97,7 +98,7 @@ See the copy-paste [shared-group JSON recipes](docs/shared-group-recipes.md) for
 
 ## VS Code Web and Codespaces
 
-Core groups, file bookmarks, tags, Quick Open, and the Getting Started guide work in `vscode.dev`, `github.dev`, and browser-based Codespaces. Git-backed working sets and global desktop storage remain available when CodeGroup runs in a desktop or Codespaces workspace extension host.
+Core groups, file bookmarks, tags, Quick Open, and the Getting Started guide work in `vscode.dev`, `github.dev`, and browser-based Codespaces. Git-backed working sets, group staging, and global desktop storage remain available when CodeGroup runs in a desktop or Codespaces workspace extension host.
 
 ## Commands
 
@@ -114,6 +115,7 @@ Core groups, file bookmarks, tags, Quick Open, and the Getting Started guide wor
 | `File Groups: Import Shared Group` | Import shareable CodeGroup JSON |
 | `File Groups: Export Group as Shareable JSON` | Export a reusable group tree |
 | `File Groups: Copy File Paths` | Copy existing files from a group and its subgroups, one normalized path per line |
+| `File Groups: Stage Group Changes` | Stage changed bookmarked files from a group and its subgroups in open workspace Git repositories |
 | `File Groups: More Group Actions...` | Rename, duplicate, move, sort, export, and more |
 | `File Groups: Create Group` | Create a root group |
 | `File Groups: Create Group from Open Editors` | Build a working set from open tabs |

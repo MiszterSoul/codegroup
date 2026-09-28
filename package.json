@@ -205,6 +205,12 @@
         "category": "%category.fileGroups%"
       },
       {
+        "command": "fileGroups.stageGroupChanges",
+        "title": "%command.stageGroupChanges.title%",
+        "icon": "$(add)",
+        "category": "%category.fileGroups%"
+      },
+      {
         "command": "fileGroups.groupActions",
         "title": "%command.groupActions.title%",
         "icon": "$(ellipsis)",
@@ -504,6 +510,11 @@
       ],
       "view/item/context": [
         {
+          "command": "fileGroups.stageGroupChanges",
+          "when": "view == fileGroupsView && viewItem =~ /^group/",
+          "group": "inline@0"
+        },
+        {
           "command": "fileGroups.openDirect",
           "when": "view == fileGroupsView && viewItem =~ /^group/",
           "group": "inline@1"
@@ -567,6 +578,11 @@
           "command": "fileGroups.copyFilePaths",
           "when": "view == fileGroupsView && viewItem =~ /group/",
           "group": "3_share@1"
+        },
+        {
+          "command": "fileGroups.stageGroupChanges",
+          "when": "view == fileGroupsView && viewItem =~ /group/",
+          "group": "1_actions@0"
         },
         {
           "command": "fileGroups.deleteGroup",
@@ -648,7 +664,7 @@
     "compile": "npm run check-types && npm run lint && node build.js",
     "build": "npm run package",
     "build:web": "node build.js --production --web-only",
-    "test": "node --import tsx --test tests/manifest.test.js tests/quickOpen.test.js tests/smartGroups.test.js tests/sharedGroups.test.js tests/tags.test.js tests/i18n.test.js tests/localization.test.js tests/pathUtils.test.js tests/groupFilePaths.test.js tests/groupHierarchy.test.js tests/fileUtils.test.js tests/multiRoot.test.js tests/accessibility.test.js",
+    "test": "node --import tsx --test tests/manifest.test.js tests/quickOpen.test.js tests/smartGroups.test.js tests/sharedGroups.test.js tests/tags.test.js tests/i18n.test.js tests/localization.test.js tests/pathUtils.test.js tests/groupFilePaths.test.js tests/groupGitStage.test.js tests/groupHierarchy.test.js tests/fileUtils.test.js tests/multiRoot.test.js tests/accessibility.test.js",
     "test:extension": "npm run package && vscode-test",
     "verify": "npm run check-types && npm run lint && npm test",
     "watch": "npm-run-all -p watch:*",

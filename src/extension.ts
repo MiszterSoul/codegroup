@@ -18,6 +18,7 @@ import { removeGroupedFilePath, renameGroupedFilePath } from './groupFileMainten
 import { formatTags, parseTags } from './tags';
 import { canonicalFilePath, createGroupFile } from './fileUtils';
 import { collectOpenEditorUris, toGroupFile } from './workspaceFileUtils';
+import { stageGroupChanges } from './groupGitStage';
 
 let storageService: StorageService;
 let fileGroupsProvider: FileGroupsProvider;
@@ -776,6 +777,32 @@ function registerCommands(context: vscode.ExtensionContext): void {
         })
     );
 
+    context.subscriptions.push(
+        vscode.commands.registerCommand('fileGroups.stageGroupChanges', async (item?: FileGroupTreeItem) => {
+            const targetGroup = await pickGroupForCommand(t('groupStage.pick'), item);
+            if (!targetGroup) {
+                return;
+            }
+
+            try {
+                const result = await stageGroupChanges(
+                    targetGroup.id,
+                    storageService.getAllGroups(),
+                    vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? []
+                );
+                const message = result.repositoryCount === 0
+                    ? t('groupStage.noRepository')
+                    : result.stagedCount === 0
+                        ? t('groupStage.empty', { name: targetGroup.name })
+                        : t('groupStage.staged', { count: result.stagedCount, name: targetGroup.name });
+                void vscode.window.showInformationMessage(message);
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error);
+                void vscode.window.showErrorMessage(t('groupStage.failed', { name: targetGroup.name, error: detail }));
+            }
+        })
+    );
+
     // Import a shared group from clipboard or file
     context.subscriptions.push(
         vscode.commands.registerCommand('fileGroups.importSharedGroup', async () => {
@@ -1135,6 +1162,11 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     actionId: 'copy-paths'
                 },
                 {
+                    label: t('groupActions.stage.label'),
+                    description: t('groupActions.stage.description'),
+                    actionId: 'stage'
+                },
+                {
                     label: t('groupActions.export.label'),
                     description: t('groupActions.export.description'),
                     actionId: 'export'
@@ -1185,6 +1217,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     return;
                 case 'copy-paths':
                     await vscode.commands.executeCommand('fileGroups.copyFilePaths', targetItem);
+                    return;
+                case 'stage':
+                    await vscode.commands.executeCommand('fileGroups.stageGroupChanges', targetItem);
                     return;
                 case 'export':
                     await vscode.commands.executeCommand('fileGroups.exportGroupShare', targetItem);

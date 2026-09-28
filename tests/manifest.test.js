@@ -22,6 +22,7 @@ test('exposes core group actions to keyboard users', async () => {
     'fileGroups.openAll',
     'fileGroups.groupActions',
     'fileGroups.copyFilePaths',
+    'fileGroups.stageGroupChanges',
     'fileGroups.editGroupTags',
     'fileGroups.editFileTags'
   ]) {

@@ -9,6 +9,7 @@
   "command.importSharedGroup.title": "Importa gruppo condiviso",
   "command.exportGroupShare.title": "Esporta come JSON condivisibile",
   "command.copyFilePaths.title": "Copia percorsi file",
+  "command.stageGroupChanges.title": "Aggiungi le modifiche del gruppo all'area di stage",
   "command.groupActions.title": "Altre azioni del gruppo...",
   "command.quickOpen.title": "Apertura rapida dai gruppi",
   "command.createGroup.title": "Crea gruppo",

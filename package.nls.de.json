@@ -9,6 +9,7 @@
   "command.importSharedGroup.title": "Geteilte Gruppe importieren",
   "command.exportGroupShare.title": "Als teilbares JSON exportieren",
   "command.copyFilePaths.title": "Dateipfade kopieren",
+  "command.stageGroupChanges.title": "Gruppenänderungen stagen",
   "command.groupActions.title": "Weitere Gruppenaktionen...",
   "command.quickOpen.title": "Quick Open aus Gruppen",
   "command.createGroup.title": "Gruppe erstellen",

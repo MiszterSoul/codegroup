@@ -21,6 +21,7 @@ const releaseKeys = [
   'command.editFileTags.title',
   'command.openDirect.title',
   'command.openAll.title',
+  'command.stageGroupChanges.title',
   'walkthrough.gettingStarted.title',
   'walkthrough.gettingStarted.description',
   'walkthrough.step.language.title',
