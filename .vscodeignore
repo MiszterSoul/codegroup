@@ -23,5 +23,6 @@ images/icon.svg
 images/screenshot-guide.html
 images/screenshot-*.png
 !images/screenshot-quick-actions.png
+!images/screenshot-configured-groups.png
 !images/screenshot-group-editor.png
 images/demo.gif
