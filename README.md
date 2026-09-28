@@ -17,7 +17,13 @@ CodeGroup is a VS Code file-bookmark organizer. Collect related files from any f
 </div>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-quick-actions.png" alt="CodeGroup VS Code file bookmarks and Quick Actions in the Explorer">
+  <img src="https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-main.png" alt="CodeGroup after setup: Frontend and Backend groups with nested Layouts and bookmarked files in the VS Code Explorer">
+</p>
+
+<p align="center"><em>Configured groups and their bookmarked files in the Explorer.</em></p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/MiszterSoul/codegroup/master/images/screenshot-quick-actions.png" alt="CodeGroup Quick Actions in the VS Code Explorer">
 </p>
 
 ## File bookmarks for VS Code
